@@ -1,0 +1,146 @@
+%{
+#include <stdio.h>
+
+const char *hsm_event_str(unsigned int);
+const char *hsm_state_str(int);
+
+#define startf()   printf("start-INIT; ")
+#define entryf()   printf("%s-ENTRY; ", hsm_state_str(HHCSTATE))
+#define initf()    printf("%s-INIT; ",  hsm_state_str(HHCSTATE))
+#define exitf()    printf("%s-EXIT; ",  hsm_state_str(HHCSTATE))
+#define actionf()  printf("%s-%s-%s; ", hsm_state_str(HHESTATE),\
+                                        hsm_event_str(HHEVENT),\
+                     (HHDSTATE != -1) ? hsm_state_str(HHDSTATE) : ""); \
+                  if (HHDSTATE != -1) { printf("\n"); }
+#define transf(X)  printf("\n[%d:]%s-%s-%s-%s-%s; ", HHRINDEX,\
+                                                    (HHSSTATE != -1) ? hsm_state_str(HHSSTATE) : "",\
+                                                    (HHESTATE != -1) ? hsm_state_str(HHESTATE) : "",\
+                                                     hsm_event_str(HHEVENT),\
+                                                    (HHDSTATE != -1) ? hsm_state_str(HHDSTATE) : "",\
+                                                     hsm_state_str(HHCSTATE));\
+                   if (!X) { printf("\n"); }
+
+#define rgonef(I) printf("[%d:-1]\n", I)
+
+static unsigned int read_key(void *, void **);
+
+#define HH_TRACE_START	startf()
+#define HH_TRACE_ENTRY	entryf()
+#define HH_TRACE_EXIT	exitf()
+#define HH_TRACE_INIT	initf()
+#define HH_TRACE_ACTION	actionf()
+#define HH_TRACE_TRANS(X) transf(X)
+
+#define HH_REGION_GONE(I)  rgonef(I)
+
+static int test = 0;
+%}
+
+%event	a b c d e f g h
+	x X
+
+%state	s0
+        s1          s11 s12
+        z1 r1       s21 s22
+           r2 z2 r3 s31 s32
+                 r4 s41 s42
+              s51
+
+%hiera	s0 (s1             (s11, s12),
+	    z1 (r1         (s21, s22),
+                r2 (z2 (r3 (s31, s32),
+                        r4 (s41, s42)),
+                    s51)))
+
+%%
+
+s0: b -> r3
+    d -> r4
+    e -> r2
+    f -> r1
+    x --	{ HHACCEPT; }
+    X --	{ HHABORT; }
+;
+
+s1: c -> z1
+    h ?((test % 4) == 0) -- { test ++; }
+;
+
+s11: a -> s12
+;
+
+s12: a -> s11
+;
+
+z1: . -> r1
+    . -> r2
+    a -> z1
+    c -> s1
+    g -> s0
+;
+
+r1: h ?((test % 4) == 1) -- { test ++; }
+;
+
+s21: a -> s22
+;
+
+z2: . -> r3
+    . -> r4
+    a -> s51
+;
+
+r3: h ?((test % 4) == 2) -- { test ++; }
+;
+
+s31: a -> s32
+;
+
+r4: h ?((test % 4) == 3) -- { test ++; }
+;
+
+s41: a -> s42
+;
+
+
+%%
+
+static unsigned int
+read_key(void *q, void **p)
+{
+    char ch;
+    (void)q;
+    (void)p;
+
+    printf("\nEnter [a - h], or [x|X] to exit/abort...\n> ");
+    do {
+        ch = getchar();
+    } while (ch == '\n');
+    switch (ch) {
+        case 'a': return a;
+        case 'b': return b;
+        case 'c': return c;
+        case 'd': return d;
+        case 'e': return e;
+        case 'f': return f;
+        case 'g': return g;
+        case 'h': return h;
+        case 'x': return x;
+        case 'X': return X;
+    }
+    return ch;
+}
+
+int main()
+{
+    hsm_t hsm;
+    int ret;
+
+    if (hsm_init(&hsm, read_key, NULL, NULL, NULL, NULL) != 0) {
+        return -1;
+    }
+
+    ret = hsm_run(&hsm);
+
+    return ret;
+}
