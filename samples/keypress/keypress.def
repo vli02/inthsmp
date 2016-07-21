@@ -1,0 +1,122 @@
+%{
+#include <stdio.h>
+
+const char *hsm_event_str(unsigned int);
+const char *hsm_state_str(int);
+
+#define startf()   printf("start-INIT; ")
+#define entryf()   printf("%s-ENTRY; ", hsm_state_str(HHCSTATE))
+#define initf()    printf("%s-INIT; ",  hsm_state_str(HHCSTATE))
+#define exitf()    printf("%s-EXIT; ",  hsm_state_str(HHCSTATE))
+#define actionf()  printf("%s-%s-%s; ", hsm_state_str(HHESTATE),\
+                                        hsm_event_str(HHEVENT),\
+                     (HHDSTATE != -1) ? hsm_state_str(HHDSTATE) : "")
+
+static unsigned int read_key(void *, void **);
+
+static int test = 0;
+%}
+
+%event	a b c d e f g h
+	x X
+
+%state	s0
+	  -> { entryf(); }
+	  <- { exitf(); }
+	s1
+	  -> { entryf(); }
+	  <- { exitf(); }
+	s11
+	  -> { entryf(); }
+	  <- { exitf(); }
+	s2
+	  -> { entryf(); }
+	  <- { exitf(); }
+	s21
+	  -> { entryf(); }
+	  <- { exitf(); }
+	s211
+	  -> { entryf(); }
+	  <- { exitf(); }
+
+%hiera	s0 (s1 (s11),
+	    s2 (s21 (s211)))
+
+%start	s0	{ startf(); }
+
+%%
+
+s0: . -> s1	{ initf(); }
+    e -> s211	{ actionf(); }
+    x --	{ HHACCEPT; }
+    X --	{ HHABORT; }
+;
+
+s1: . -> s11	{ initf(); }
+    a -> s1	{ actionf(); }
+    b -> s11	{ actionf(); }
+    c -> s2	{ actionf(); }
+    d -> s0	{ actionf(); }
+    f -> s211	{ actionf(); }
+;
+
+s11: g -> s211	{ actionf(); }
+     h ?(test) -- { test = 0; actionf(); }
+;
+
+s2: . -> s21	{ initf(); }
+    c -> s1	{ actionf(); }
+    f -> s11	{ actionf(); }
+;
+
+s21: . -> s211	{ initf(); }
+     b -> s211	{ actionf(); }
+     h ?(!test) -> s21 { test = 1; actionf(); }
+;
+
+s211: d -> s21	{ actionf(); }
+      g -> s0	{ actionf(); }
+;
+
+
+%%
+
+static unsigned int
+read_key(void *q, void **p)
+{
+    char ch;
+    (void)q;
+    (void)p;
+
+    printf("\nEnter [a - h], or [x|X] to exit/abort...\n> ");
+    do {
+        ch = getchar();
+    } while (ch == '\n');
+    switch (ch) {
+        case 'a': return a;
+        case 'b': return b;
+        case 'c': return c;
+        case 'd': return d;
+        case 'e': return e;
+        case 'f': return f;
+        case 'g': return g;
+        case 'h': return h;
+        case 'x': return x;
+        case 'X': return X;
+    }
+    return ch;
+}
+
+int main()
+{
+    hsm_t hsm;
+    int ret;
+
+    if (hsm_init(&hsm, read_key, NULL, NULL, NULL, NULL) != 0) {
+        return -1;
+    }
+
+    ret = hsm_run(&hsm);
+
+    return ret;
+}

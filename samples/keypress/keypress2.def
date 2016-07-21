@@ -1,0 +1,143 @@
+%{
+#include <stdio.h>
+#include "keypress2.h"
+
+#define startf()   printf("start-INIT; ")
+#define entryf()   printf("%s-ENTRY; ", k2_hsm_state_str(HHCSTATE))
+#define initf()    printf("%s-INIT; ",  k2_hsm_state_str(HHCSTATE))
+#define exitf()    printf("%s-EXIT; ",  k2_hsm_state_str(HHCSTATE))
+#define actionf()  printf("%s-%s-%s; ", k2_hsm_state_str(HHESTATE),\
+                                        k2_hsm_event_str(HHEVENT),\
+                     (HHDSTATE != -1) ? k2_hsm_state_str(HHDSTATE) : "")
+
+static unsigned int read_key(void *, void **);
+
+#define a   100
+#define b   200
+#define c   300
+#define d   400
+#define e   500
+#define f   600
+#define g   700
+#define h   800
+#define x   900
+#define X   10000
+#define INVALID_EVENT X + 1000
+
+#define s0   0
+#define s1   1
+#define s11  11
+#define s2   2
+#define s21  21
+#define s211 211
+
+#define HH_PROCESS_INVALID_EVENT printf("invalid event: %d", HHEVENT)
+#define HH_PROCESS_IGNORED_EVENT printf("event %s ignored on %s",\
+                                        k2_hsm_event_str(HHEVENT),\
+                                        k2_hsm_state_str(HHSSTATE))
+
+#define HH_TRACE_START	startf()
+#define HH_TRACE_ENTRY	entryf()
+#define HH_TRACE_EXIT	exitf()
+#define HH_TRACE_INIT	initf()
+#define HH_TRACE_ACTION	actionf()
+
+static int test = 0;
+%}
+
+%prefix k2_
+
+%manual_event_id
+%manual_state_id
+
+%event	a b c d e f g h
+	x X
+
+%state	s0
+	s1
+	s11
+	s2
+	s21
+	s211
+
+%hiera	s0 (s1 (s11),
+	    s2 (s21 (s211)))
+
+%start	s0
+
+%%
+
+s0: . -> s1
+    e -> s211
+    x --	{ HHACCEPT; }
+    X --	{ HHABORT; }
+;
+
+s1: . -> s11
+    a -> s1
+    b -> s11
+    c -> s2
+    d -> s0
+    f -> s211
+;
+
+s11: g -> s211
+     h ?(test) -- { test = 0; }
+;
+
+s2: . -> s21
+    c -> s1
+    f -> s11
+;
+
+s21: . -> s211
+     b -> s211
+     h ?(!test) -> s21 { test = 1; }
+;
+
+s211: d -> s21
+      g -> s0
+;
+
+
+%%
+
+static unsigned int
+read_key(void *q, void **p)
+{
+    char ch;
+    (void)q;
+    (void)p;
+
+    printf("\nEnter [a - h], or [x|X] to exit/abort...\n> ");
+    do {
+        ch = getchar();
+    } while (ch == '\n');
+    switch (ch) {
+        case 'a': return a;
+        case 'b': return b;
+        case 'c': return c;
+        case 'd': return d;
+        case 'e': return e;
+        case 'f': return f;
+        case 'g': return g;
+        case 'h': return h;
+        case 'x': return x;
+        case 'X': return X;
+    }
+    return ch;
+}
+
+int main()
+{
+    k2_hsm_t hsm;
+    int ret;
+
+    if (k2_hsm_init(&hsm, read_key, NULL, NULL, NULL, NULL) != 0) {
+        return -1;
+    }
+
+    ret = k2_hsm_run(&hsm);
+
+    return ret;
+}

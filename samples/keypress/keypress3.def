@@ -1,0 +1,241 @@
+%{
+#include <stdio.h>
+#include <stdint.h>
+#include <pthread.h>
+#include "keypress3.h"
+
+#define startf()   printf("start-INIT; ")
+#define entryf()   printf("%s-ENTRY; ", k3_hsm_state_str(HHCSTATE))
+#define initf()    printf("%s-INIT; ",  k3_hsm_state_str(HHCSTATE))
+#define exitf()    printf("%s-EXIT; ",  k3_hsm_state_str(HHCSTATE))
+#define actionf()  printf("%s-%s-%s; ", k3_hsm_state_str(HHESTATE),\
+                                        k3_hsm_event_str(HHEVENT),\
+                     (HHDSTATE != -1) ? k3_hsm_state_str(HHDSTATE) : "")
+#define wildcf()   printf("%s matched *\n", k3_hsm_event_str(HHEVENT))
+
+static unsigned int read_key(void *, void **);
+
+#define a   100
+#define b   200
+#define c   300
+#define d   400
+#define e   500
+#define f   600
+#define g   700
+#define h   800
+#define x   900
+#define X   10000
+#define INVALID_EVENT X + 1000
+
+#define s0   0
+#define s1   1
+#define s11  11
+#define s2   2
+#define s21  21
+#define s211 211
+
+#define HH_PROCESS_INVALID_EVENT printf("invalid event: %d", HHEVENT)
+#define HH_PROCESS_IGNORED_EVENT printf("event %s ignored on %s",\
+                                        k3_hsm_event_str(HHEVENT),\
+                                        k3_hsm_state_str(HHSSTATE))
+
+#define HH_TRACE_START	startf()
+#define HH_TRACE_ENTRY	entryf()
+#define HH_TRACE_EXIT	exitf()
+#define HH_TRACE_INIT	initf()
+#define HH_TRACE_ACTION	actionf()
+
+static int test = 0;
+
+static int saved_state;
+%}
+
+%prefix k3_
+
+%manual_event_id
+%manual_state_id
+
+%event	a b c d e f g h
+	x X
+
+%state	s0
+	s1
+	s11
+	s2
+	s21
+	s211
+
+%hiera	s0 (s1 (s11),
+	    s2 (s21 (s211)))
+
+%start	s0
+
+%%
+
+s0: . -> s1
+    e -> s211
+    x --	{ HHACCEPT; }
+    X --	{ HHABORT; }
+    * --	{ wildcf(); }
+;
+
+s1: . -> s11
+    a -> s1
+    b |> s11	/* local transition to sub state */
+    c -> s2
+    d >| s0	/* local transition to parent state */
+    f -> s211
+;
+
+s11: g -> s211
+     h ?(test) -- { test = 0; }
+;
+
+s2: . -> s21
+    a <<	/* event deferral */
+    c -> s1
+    f -> s11
+;
+
+s21: . -> s211
+     b |> s211
+     h ?(!test) -> s21 { test = 1; }
+;
+
+s211: d >| s21
+      g -> s0
+;
+
+
+%%
+
+static void
+defer_key(void *q, unsigned int key, void *arg, int state)
+{
+    (void)q;
+    (void)arg;
+
+    printf("event %s defered on %s.", k3_hsm_event_str(key),
+                                      k3_hsm_state_str(state));
+}
+
+static unsigned int
+read_key(void *q, void **p)
+{
+    char ch;
+    (void)q;
+    (void)p;
+
+    printf("\nEnter [a - h], or [x|X] to exit/abort...\n> ");
+    do {
+        ch = getchar();
+    } while (ch == '\n');
+    switch (ch) {
+        case 'a': return a;
+        case 'b': return b;
+        case 'c': return c;
+        case 'd': return d;
+        case 'e': return e;
+        case 'f': return f;
+        case 'g': return g;
+        case 'h': return h;
+        case 'x': return x;
+        case 'X': return X;
+    }
+    return ch;
+}
+
+void
+lock_func(void *arg)
+{
+    pthread_mutex_t *mtx = arg;
+
+    pthread_mutex_lock(mtx);
+}
+
+void
+unlock_func(void *arg)
+{
+    pthread_mutex_t *mtx = arg;
+
+    pthread_mutex_unlock(mtx);
+}
+
+void *
+run_thread(void *arg)
+{
+    pthread_mutex_t *mtx = arg;
+    k3_hsm_t hsm;
+    int rc;
+
+    printf("\nStart first run...\n\n");
+
+    rc = k3_hsm_init(&hsm, read_key, defer_key, lock_func, unlock_func, mtx);
+    if (rc == 0) {
+        rc = k3_hsm_run(&hsm);
+
+        saved_state = k3_hsm_get_state(&hsm);
+    }
+
+    pthread_exit((void *)(uintptr_t)rc);
+
+    return NULL;
+}
+
+void *
+run2_thread(void *arg)
+{
+    pthread_mutex_t *mtx = arg;
+    k3_hsm_t hsm;
+    int rc;
+
+    printf("\nStart run to history state %s...\n",
+           k3_hsm_state_str(saved_state));
+
+    rc = k3_hsm_init(&hsm, read_key, defer_key, lock_func, unlock_func, mtx);
+    if (rc == 0) {
+        rc = k3_hsm_run_to(&hsm, &saved_state, 1);
+    }
+
+    pthread_exit((void *)(uintptr_t)rc);
+
+    return NULL;
+}
+
+int main()
+{
+    pthread_mutex_t mtx;
+    pthread_t thr;
+    void *ret;
+    int rc;
+
+    rc = pthread_mutex_init(&mtx, NULL);
+    if (rc != 0) {
+        return -1;
+    }
+
+    rc = pthread_create(&thr, NULL, run_thread, &mtx);
+    if (rc != 0) {
+        return -1;
+    }
+
+    rc = pthread_join(thr, &ret);
+    // printf("%d, %d\n", rc, (intptr_t)ret);
+    if (rc != 0 || (intptr_t)ret != 0) {
+        return -1;
+    }
+
+    rc = pthread_create(&thr, NULL, run2_thread, &mtx);
+    // printf("%d, %d\n", rc, (intptr_t)ret);
+    if (rc != 0) {
+        return -1;
+    }
+
+    rc = pthread_join(thr, &ret);
+    // printf("%d, %d\n", rc, (intptr_t)ret);
+    if (rc != 0) {
+        return -1;
+    }
+
+    return (intptr_t)ret;
+}
