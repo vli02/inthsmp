@@ -1,5 +1,5 @@
 
-HSMP		= ../../bin/linux/hsmp
+HSMP		= ../../src/hsmp
 HSMPFLAGS	= -i -v -d -S
 CC		= gcc
 CCFLAGS		= -g -Wall
