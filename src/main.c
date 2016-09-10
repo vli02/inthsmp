@@ -27,9 +27,6 @@
 #include "gen.h"
 
 extern int yyparse();
-extern void check_license(int);
-extern void print_license(int);
-extern void add_license();
 
 const int prod_ver[3] = { 1, 0, 0 };
 const char *prod_name = "Intuitive Hierarchical State Machine Programming";
@@ -45,8 +42,6 @@ static const struct option longOpts[] = {
     { "Strings", no_argument, NULL, 'S' },
     { "help", no_argument, NULL, 'h' },
     { "version", no_argument, NULL, 'V' },
-    { "license", no_argument, NULL, 'L' },
-    { "add_license", no_argument, NULL, 'A' },
     { "silent", no_argument, NULL, 'i' },
     { 0, 0, 0, 0 }
 };
@@ -78,7 +73,6 @@ print_version()
 {
     printf("%s\n", prod_name);
     printf("Version %d.%d.%d.\n", prod_ver[0], prod_ver[1], prod_ver[2]);
-    printf("Copyright (C) 2016 Victor Li (vli02@hotmail.com).\n");
 }
 
 static void
@@ -104,8 +98,6 @@ print_help(const char *exename)
     printf("\t-h, --help\t\tprint this help.\n");
     printf("\t-V, --version\t\tprint version information.\n");
     printf("\t-i, --silent\t\tdo not show version and license information.\n");
-    printf("\t-L, --license\t\tprint license information.\n");
-    printf("\t-A, --add_license\tapply a license to the software.\n");
 }
 
 static void
@@ -118,8 +110,6 @@ parse_option(int argc, char *const *argv)
 
     int o_V = 0;
     int o_i = 0;
-    int o_L = 0;
-    int o_A = 0;
     int o_h = 0;
     char *unknown_opt = NULL;
 
@@ -158,12 +148,6 @@ parse_option(int argc, char *const *argv)
             case 'i':
                 o_i = 1;
                 break;
-            case 'L':
-                o_L = 1;
-                break;
-            case 'A':
-                o_A = 1;
-                break;
             case 'h':
                 o_h = 1;
                 break;
@@ -175,26 +159,15 @@ parse_option(int argc, char *const *argv)
         }
     }
 
-    if (o_L) {
-        o_i = 0;
-    }
     if (o_i == 0 || o_V) {
         print_version();
         printf("\n");
     }
-    check_license(o_i);
     if (unknown_opt) {
         printf("Invalid option: %s\n", unknown_opt);
     }
-    if (o_L) {
-        print_license(1);
-        printf("\n");
-    }
     if (o_h) {
         print_help(argv[0]);
-    }
-    if (o_A) {
-        add_license();
     }
 
     if (argc == 1 ||
