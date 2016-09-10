@@ -7,3 +7,7 @@ The overall grammar of hsmp is very much yacc or Gnu Bison alike but simpler and
 hsmp uses UML state machine as the standard definition of Hierarchical State Machine, it supports UML state machine version 2.0.
 
 The target code hsmp v1.0 generates is in C language. Future releases may support to generate code in Java, C++ and other languages. Generating a hierarchical state machine diagram may be supported in future releases, too.
+
+This program is free under GNU General Public License.
+
+Copyright (C) 2015, 2016  Victor Li (vli02@hotmail.com)
