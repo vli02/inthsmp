@@ -1,16 +1,16 @@
-CC      = gcc
-CFLAGS  = -g -c -Wall
-LDFLAGS =
-BISON   = bison
-YFILE   = parser.y
-YFLAGS  = -d -v
-HFILES  = $(YFILE:.y=.h) lex.h defines.h gen.h license.h util.h
-CFILES  = main.c $(YFILE:.y=.c) lex.c defines.c gen_c.c license.c util.c
-CFILES2 = tool.c util.c
-OBJS    = $(CFILES:.c=.o)
-OBJS2   = $(CFILES2:.c=.o)
-HSMP    = hsmp
-TOOL    = tool
+CC	= gcc
+CFLAGS	= -g -c -Wall
+LDFLAGS	=
+BISON	= bison
+YFILE	= parser.y
+YFLAGS	= -d -v
+HFILES	= $(YFILE:.y=.h) lex.h defines.h gen.h license.h util.h
+CFILES	= main.c $(YFILE:.y=.c) lex.c defines.c gen_c.c license.c util.c
+CFILES2	= tool.c util.c
+OBJS	= $(CFILES:.c=.o)
+OBJS2	= $(CFILES2:.c=.o)
+HSMP	= hsmp
+TOOL	= tool
 
 all: $(CFILES) $(HFILES) $(HSMP) $(TOOL)
 
