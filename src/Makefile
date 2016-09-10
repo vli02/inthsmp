@@ -15,18 +15,18 @@ TOOL	= tool
 all: $(CFILES) $(HFILES) $(HSMP) $(TOOL)
 
 $(HSMP): $(OBJS)
-        $(CC) $(LDFLAGS) $(OBJS) -o $@
+	$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 $(TOOL): $(OBJS2)
-        $(CC) $(LDFLAGS) $(OBJS2) -o $@
+	$(CC) $(LDFLAGS) $(OBJS2) -o $@
 
 .c.o:   
-        $(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 .y.h .y.c:
-        $(BISON) $(YFLAGS) $< -o $@
+	$(BISON) $(YFLAGS) $< -o $@
 
 clean:  
-        rm -f $(OBJS) parser.c parser.h parser.output
-        rm -f $(HSMP)
-        rm -f $(OBJS2) $(TOOL)
+	rm -f $(OBJS) parser.c parser.h parser.output
+	rm -f $(HSMP)
+	rm -f $(OBJS2) $(TOOL)
