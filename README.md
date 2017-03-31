@@ -1,5 +1,7 @@
 # Intuitive Hierarchical State Machine Programming
 
+https://github.com/vli02/inthsmp/blob/master/samples/keypress/keypress.png?raw=true
+
 hsmp defines an Intuitive Notation Language for writing a UML Hierarchical State Machine program. By using this language, a hierarchical state machine is composed as a Grammar File. hsmp takes this grammar file and generates a high efficient hierarchical state machine in C code.
 
 The overall grammar of hsmp is very much yacc or Gnu Bison alike but simpler and intuitive, brings no hassle for an experienced computer programmer to learn and use.
