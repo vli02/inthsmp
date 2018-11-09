@@ -1,5 +1,7 @@
-keypress sample code:
-=====================
+keypress sample:
+================
+Please see the *.png for the diagram of the hierarchical state machine examples.
+
 1. keypress.def
         A sample state machine implementation as shown on diagram keypress.png, to demonstrate
         - Automatically define all event and state IDs;
@@ -24,3 +26,8 @@ keypress sample code:
         # - Use event queues.
         - Use lock and unlock functions;
         - Use run to history.
+
+Files:
+======
+c/*.def		- c implementation of these state machines.
+c/Makefile	- Makefile to build the state machine binaries.
