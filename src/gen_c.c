@@ -83,12 +83,14 @@ extern int manual_eid;
 extern int manual_sid;
 
 extern char *g_output_fname;
-extern int   g_opt_d;
-extern int   g_opt_o;
 extern int   g_opt_n;
-extern int   g_opt_v;
 extern int   g_opt_S;
 extern int   g_opt_W;
+
+extern char *output_c_name;
+extern FILE *output_file_ptr;
+extern FILE *output_h_fptr;
+extern FILE *output_v_fptr;
 
 static int max_eid      = -1;
 static int max_sid      = -1;
@@ -99,12 +101,6 @@ static int max_depth    = 1;
 static int max_regions  = 1;
 static int max_inits    = 1;
 
-static char *output_c_name = NULL;
-static char *output_h_name = NULL;
-static char *output_v_name = NULL;
-static FILE *output_c_file = NULL;
-static FILE *output_h_file = NULL;
-static FILE *output_v_file = NULL;
 static FILE *output_file   = NULL;
 
 static void
@@ -2126,168 +2122,21 @@ print_misc_api()
     write2file(p);
 }
 
-int
-init_output()
-{
-    int retval = 0;
-    int i;
-    const char *base;
-    char *cname, *hname, *vname;
-    char tab, dot, x;
-    FILE *cfile, *hfile, *vfile;
-
-    cfile = hfile = vfile = NULL;
-
-    if (g_opt_o != 0 &&
-        g_output_fname != NULL) {
-        tab = 0;
-        base = g_output_fname;
-    } else {
-        tab = 1;
-        base = input_filename;
-    }
-    i = strlen(base) + 1;
-    assert(i > 1);
-    cname = malloc(i + 16);
-    hname = malloc(i + 16);
-    vname = malloc(i + 16);
-    if (!cname || !hname || !vname) {
-        fprintf(stderr, "Failed to allocate memory of size %d.\n", (i + 16) * 3);
-        retval = -1;
-        goto output_err;
-    }
-
-    strcpy(cname, base);
-    if (tab) {
-        strcat(cname, ".tab");
-        i += 4;
-    }
-
-    /* append or replace with .c if needed */
-    if (i > 3) {
-        dot = cname[i - 3];
-        x = cname[i - 2];
-    } else {
-        dot = 0;
-    }
-    if (dot == 0 ||
-        dot != '.' || (x != 'c' && x != 'h')) {
-        cname[i - 1] = '.';
-        cname[i ++] = 'c';
-        cname[i ++] = 0;
-    } else if (x == 'h') {
-        cname[i - 2] = 'c';
-        g_opt_d = 1;
-    }
-
-    /* open .c file for writing */
-    cfile = fopen(cname, "w");
-    if (cfile == NULL) {
-        fprintf(stderr, "Failed to open file for writing: %s.\n", cname);
-        retval = -1;
-        goto output_err;
-    }
-
-    /* open .h file for writing */
-    if (g_opt_d != 0) {
-        strcpy(hname, cname);
-        /* replace with .h */
-        hname[i - 2] = 'h';
-
-        hfile = fopen(hname, "w");
-        if (hfile == NULL) {
-            fprintf(stderr, "Failed to open file for writing: %s.\n", hname);
-            retval = -1;
-            goto output_err;
-        }
-    } else {
-        free(hname);
-        hname = NULL;
-    }
-
-    /* open .output file for writing */
-    if (g_opt_v != 0) {
-        strcpy(vname, cname);
-        /* replace with .h */
-        vname[i - 3] = 0;
-        strcat(vname, ".output");
-
-        vfile = fopen(vname, "w");
-        if (vfile == NULL) {
-            fprintf(stderr, "Failed to open file for writing: %s.\n", vname);
-            retval = -1;
-        }
-    } else {
-        free(vname);
-        vname = NULL;
-    }
-
-output_err:
-    if (retval != 0) {
-        free(cname);
-        free(hname);
-        free(vname);
-    } else {
-        output_c_name = cname;
-        output_h_name = hname;
-        output_v_name = vname;
-        output_c_file = cfile;
-        output_h_file = hfile;
-        output_v_file = vfile;
-    }
-    return retval;
-}
-
-void
-deinit_output(int bad)
-{
-    if (output_v_file) {
-        fclose(output_v_file);
-    }
-    if (output_h_file) {
-        fclose(output_h_file);
-    }
-    if (output_c_file) {
-        fclose(output_c_file);
-    }
-    if (output_v_name) {
-        if (bad) {
-            unlink(output_v_name);
-        }
-        free(output_v_name);
-        output_v_name = NULL;
-    }
-    if (output_h_name) {
-        if (bad) {
-            unlink(output_h_name);
-        }
-        free(output_h_name);
-        output_h_name = NULL;
-    }
-    if (output_c_name) {
-        if (bad) {
-            unlink(output_c_name);
-        }
-        free(output_c_name);
-        output_c_name = NULL;
-    }
-}
-
 void
 gen_output()
 {
     assign_event_ids();
     assign_state_ids();
 
-    if (output_v_file != NULL) {
-        output_file = output_v_file;
+    if (output_v_fptr != NULL) {
+        output_file = output_v_fptr;
         dump_all();
     }
 
     compute_max_depth();
     compute_max_regions();
 
-    output_file = output_c_file;
+    output_file = output_file_ptr;
     print_prod_info();
     print_prolog();
     print_h_header();
@@ -2306,8 +2155,8 @@ gen_output()
 
     print_epilog();
 
-    if (output_h_file != NULL) {
-        output_file = output_h_file;
+    if (output_h_fptr != NULL) {
+        output_file = output_h_fptr;
         print_prod_info();
         print_h_header();
     }

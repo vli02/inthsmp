@@ -194,6 +194,10 @@ opt_done:
     } else {
         input_filename = argv[where];
     }
+
+    if (g_opt_l != OUTPUT_LANG_C) {
+        g_opt_d = 0; // override header file output option.
+    }
 }
 
 int
