@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <libgen.h>
 #include <getopt.h>
+#include <string.h>
 #include <assert.h>
 
 #include "lex.h"
@@ -52,6 +53,7 @@ const char *input_filename   = NULL;
 char *g_output_fname = NULL;
 int   g_opt_d        = 0;
 int   g_opt_o        = 0;
+int   g_opt_l        = OUTPUT_LANG_C;
 int   g_opt_n        = 1;
 int   g_opt_v        = 0;
 int   g_opt_S        = 0;
@@ -91,6 +93,7 @@ print_help(const char *exename)
     printf("\noptions:\n");
     printf("\t-d, --define\t\tproduce a header file.\n");
     printf("\t-o, --output <file>\tspecify output file name.\n");
+    printf("\t-l, --lang <c|py>\tspecify output programming language, default is c.\n");
     printf("\t-W, --Warning <n>\tspecify warning level, default warning level is all warnings.\n");
     printf("\t-n, --no_lines\t\tdo not generate `#line' directives.\n");
     printf("\t-v, --verbose\t\tproduce a .output file.\n");
@@ -106,13 +109,13 @@ parse_option(int argc, char *const *argv)
     int opt;
     int longIndex;
     int where = 1;
-    char *p;
+    char *p, errstr[128];
 
     int o_V = 0;
     int o_i = 0;
     int o_h = 0;
-    char *unknown_opt = NULL;
 
+    errstr[0] = 0;
     opterr = 0;
     longIndex = 0;
     while ((opt = getopt_long(argc, argv, optString, longOpts, &longIndex)) != -1) {
@@ -127,6 +130,16 @@ parse_option(int argc, char *const *argv)
                 where ++;
                 break;
             case 'l':
+                p = argv[where];
+                if (!strcmp(p, "c")) {
+                    g_opt_l = OUTPUT_LANG_C;
+                } else if (!strcmp(p, "py")) {
+                    g_opt_l = OUTPUT_LANG_PY;
+                } else {
+                    sprintf(errstr, "Invalid language option: %s.", p);
+                    goto opt_done;
+                }
+                where ++;
                 break;
             case 'W':
                 p = argv[where];
@@ -153,21 +166,25 @@ parse_option(int argc, char *const *argv)
                 break;
             case '?':
             default:
-                unknown_opt = argv[where - 1];
+                sprintf(errstr, "Invalid option: %s.", argv[where - 1]);
                 o_h = 1;
-                break;
+                goto opt_done;
         }
     }
 
+opt_done:
     if (o_i == 0 || o_V) {
         print_version();
         printf("\n");
     }
-    if (unknown_opt) {
-        printf("Invalid option: %s\n", unknown_opt);
+    if (errstr[0]) {
+        printf("%s\n", errstr);
     }
     if (o_h) {
         print_help(argv[0]);
+    }
+    if (errstr[0]) {
+        exit(-1);
     }
 
     if (argc == 1 ||

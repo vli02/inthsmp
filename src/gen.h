@@ -21,6 +21,9 @@
 
 #include "defines.h"
 
+#define OUTPUT_LANG_C	0
+#define OUTPUT_LANG_PY	1
+
 int init_output();
 void deinit_output();
 void gen_output();
