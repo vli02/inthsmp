@@ -21,6 +21,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+
+#include "defines.h"
 #include "gen.h"
 
 #define WRITE_LINENO(TEXT) \
@@ -522,39 +524,6 @@ print_entry_path()
         i ++;
     }
     write2file("\n};\n\n");
-}
-
-static int
-test_ev_in_list(event_t *ev, plist_t *evl)
-{
-    int i = 0;
-    while (i < evl->count) {
-        if (evl->pa[i] == ev ||
-            evl->pa[i] == wildc_ev) {
-            return 1;
-        }
-        i ++;
-    }
-    return 0;
-}
-
-static state_t *
-search_cross_state(state_t *src, state_t *dst)
-{
-    state_t *s, *d;
-    s = src->super;
-    while (s) {
-        d = dst->super; /* external transition only, no local transition */
-        while (d) {
-            if (s == d) {
-                return s;
-            }
-            d = d->super;
-        }
-        s = s->super;
-    }
-
-    return NULL;
 }
 
 static void

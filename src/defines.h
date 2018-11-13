@@ -138,6 +138,8 @@ void state_add_transition(state_t *, trans_t *);
 
 plist_t *build_evlist(event_t *);
 plist_t *add_evlist(plist_t *, event_t *);
+int test_ev_in_list(event_t *, plist_t *);
+state_t *search_cross_state(state_t *, state_t *);
 event_t *find_event_by_eid(int);
 state_t *find_state_by_sid(int);
 
