@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <stdarg.h>
 #include <assert.h>
 #include "gen.h"
 
@@ -28,13 +27,6 @@
 do {\
     if (g_opt_n) {\
         write2file("#line %d \"%s\"\n", (TEXT)->line, input_filename);\
-    }\
-} while (0);
-
-#define WRITE_LINENO_1() \
-do {\
-    if (g_opt_n) {\
-        write2file("#line 1 \"%s\"\n", output_c_name);\
     }\
 } while (0);
 
@@ -69,8 +61,6 @@ extern const char *prod_name;
 extern const char *input_filename;
 extern event_t *wildc_ev;
 extern state_t *start_st;
-extern link_t event_link;
-extern link_t state_link;
 extern link_t dest_link;
 extern text_t     *prolog_code;
 extern text_t     *epilog_code;
@@ -82,337 +72,24 @@ extern int   deferral_is_used;
 extern int manual_eid;
 extern int manual_sid;
 
-extern char *g_output_fname;
 extern int   g_opt_n;
 extern int   g_opt_S;
-extern int   g_opt_W;
 
-extern char *output_c_name;
 extern FILE *output_file_ptr;
 extern FILE *output_h_fptr;
-extern FILE *output_v_fptr;
+extern FILE *output_file;
 
-static int max_eid      = -1;
-static int max_sid      = -1;
-static int max_leaf_sid = -1;
-static int max_super_sid  = -1;
+extern int max_eid;
+extern int max_sid;
+extern int max_leaf_sid;
+extern int max_super_sid;
+
+extern int max_depth;
+extern int max_regions;
+extern int max_inits;
+
 static int max_zone_depth = 1;
-static int max_depth    = 1;
-static int max_regions  = 1;
-static int max_inits    = 1;
 
-static FILE *output_file   = NULL;
-
-static void
-write2file(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    vfprintf(output_file, format, ap);
-    va_end(ap);
-}
-
-static void
-dump_events()
-{
-    event_t *ev = event_link.head;
-
-    write2file("event list:\n");
-    while (ev) {
-        if (ev != wildc_ev) {
-            write2file("%d:\t%s[%c%c]\n",
-                       ev->id,
-                       ev->name->txt,
-                       CHECK_FLAGS(ev, FLAG_DEFINED) ? 'd' : ' ',
-                       CHECK_FLAGS(ev, FLAG_BE_USED) ? 'u' : ' ');
-        }
-        ev = ev->link;
-    }
-    write2file("max: %d\n", max_eid);
-    write2file("<end>\n");
-}
-
-static void
-dump_one_state(state_t *st, int level)
-{
-    int i = level;
-    state_t *s = st->sub;
-
-    write2file("%d: ", st->id);
-
-    while (i > 0) {
-        write2file("\t");
-        i --;
-    }
-    if (start_st == st) {
-        write2file("*");
-    }
-    write2file("%s[%c%c%c%c]\n",
-               st->name->txt,
-               CHECK_FLAGS(st, FLAG_DEFINED) ? 'd' : ' ',
-               CHECK_FLAGS(st, FLAG_BE_USED) ? 'u' : ' ',
-               (st->entry) ? 'e' : ' ',
-               (st->exit)  ? 'x' : ' ');
-
-    while (s) {
-        assert(s->super == st);
-        dump_one_state(s, level + 1);
-        s = s->sibling;
-    }
-}
-
-static void
-dump_states()
-{
-    state_t *st = state_link.head;
-
-    write2file("state list:\n");
-    while (st) {
-        if (st->super == NULL) {
-            dump_one_state(st, 0);
-        }
-        st = st->link;
-    }
-    write2file("max_leaf: %d, max_super: %d, max: %d\n",
-               max_leaf_sid, max_super_sid, max_sid);
-    write2file("<end>\n");
-}
-
-static void
-dump_evlist(plist_t *evl)
-{
-    int i;
-    event_t *ev;
-
-    write2file("(");
-    i = 0;
-    while (i < evl->count) {
-        ev = evl->pa[i];
-        if (i != 0) {
-            write2file(", ");
-        }
-        if (ev == wildc_ev) {
-            write2file("-:%s", ev->name->txt);
-        } else {
-            write2file("%d:%s", ev->id, ev->name->txt);
-        }
-        i ++;
-    }
-    write2file(")\n");
-}
-
-static void
-dump_trans()
-{
-    state_t *st;
-    trans_t *tr;
-    dest_t *dst;
-
-    st = state_link.head;
-    write2file("transition list:\n");
-    while (st) {
-        int lineno = 1;
-        tr = st->trans;
-        dst = st->init;
-        if (tr || dst) {
-            write2file("%d:%s:\t", st->id, st->name->txt);
-        }
-        while (dst) {
-            if (lineno != 1) {
-                write2file("\t\t");
-            }
-            write2file(".\t[%d]->%d:%s\n", dst->id, dst->st->id, dst->st->name->txt);
-            lineno ++;
-            dst = dst->sibling;
-        }
-        while (tr) {
-            dst = tr->dst;
-            if (lineno != 1) {
-                write2file("\t\t");
-            }
-            dump_evlist(&tr->evl);
-            lineno ++;
-            while (dst) {
-                write2file("\t\t\t[%d]", dst->id);
-                if (dst->st) {
-                    if (dst->type == DST_TYPE_LFROM) {
-                        write2file("|>");
-                    } else if (dst->type == DST_TYPE_LTO) {
-                        write2file(">|");
-                    } else {
-                        write2file("->");
-                    }
-                    write2file("%d:%s\n",
-                                dst->st->id,
-                                dst->st->name->txt);
-                } else if (dst->type == DST_TYPE_INT) {
-                    write2file("--\n");
-                } else if (dst->type == DST_TYPE_DEFER) {
-                    write2file("<<\n");
-                } else {
-                    assert(0);
-                }
-                dst = dst->sibling;
-            }
-            tr = tr->sibling;
-        }
-        st = st->link;
-    }
-    write2file("<end>\n");
-}
-
-static void
-dump_all()
-{
-    dump_events();
-    dump_states();
-    dump_trans();
-}
-
-static void
-assign_event_ids()
-{
-    event_t *ev;
-
-    /* all deferenced events */
-    ev = event_link.head;
-    while (ev) {
-        if (ev == wildc_ev) {
-            /* skip it */
-        } else if (CHECK_FLAGS(ev, FLAG_BE_USED)) {
-            ev->id = ++max_eid;
-        }
-        ev = ev->link;
-    }
-
-    /* all unreferenced events */
-    ev = event_link.head;
-    while (ev) {
-        if (ev == wildc_ev) {
-            /* skip it */
-        } else if (ev->id == -1) {
-            ev->id = ++max_eid;
-        }
-        ev = ev->link;
-    }
-}
-
-static void
-assign_state_ids()
-{
-    state_t *st;
-
-    st = state_link.head;
-    /* set default start state */
-    if (start_st == NULL) {
-        start_st = st;
-        while (start_st &&
-               start_st->sub) {
-            start_st = start_st->sub;
-        }
-    }
-
-    /* leaf states */
-    while (st) {
-        if (!st->sub) {
-            st->id = ++max_sid;
-        }
-        st = st->link;
-    }
-    max_leaf_sid = max_sid;
-
-    /* super states */
-    st = state_link.head;
-    while (st) {
-        if (st->id == -1 &&
-            (!st->init ||
-             !st->init->sibling)) {
-            st->id = ++max_sid;
-        }
-        st = st->link;
-    }
-    max_super_sid = max_sid;
-
-    /* zones */
-    st = state_link.head;
-    while (st) {
-        if (st->id == -1) {
-            st->id = ++max_sid;
-        }
-        st = st->link;
-    }
-}
-
-static void
-compute_max_depth()
-{
-    int i, depth;
-    state_t *st;
-
-    i = 0;
-    while (i <= max_leaf_sid) {
-        st = find_state_by_sid(i);
-        depth = 0;
-        do {
-            depth ++;
-            st = st->super;
-        } while (st);
-        if (max_depth < depth) {
-            max_depth = depth;
-        }
-        i ++;
-    }
-}
-
-static int
-compute_st_regions(state_t *st)
-{
-    state_t *sub  = st->sub;
-    dest_t  *init = st->init;
-    int regions = 1;
-    int local_inits = 1;
-
-    while (sub) {
-        if (sub->regions == 0) {
-            sub->regions = compute_st_regions(sub);
-        }
-        if (regions < sub->regions) {
-            regions = sub->regions;
-        }
-        sub = sub->sibling;
-    }
-
-    while(init &&
-          init->sibling) {
-        regions ++;
-        local_inits ++;
-        init = init->sibling;
-    }
-    if (max_inits < local_inits) {
-        max_inits = local_inits;
-    }
-
-    return regions;
-}
-
-static void
-compute_max_regions()
-{
-    int i;
-    state_t *st;
-
-    i = 0;
-    while (i <= max_sid) {
-        st = find_state_by_sid(i);
-        if (st->regions == 0) {
-            st->regions = compute_st_regions(st);
-        }
-        if (max_regions < st->regions) {
-            max_regions = st->regions;
-        }
-        i ++;
-    }
-}
 
 static void
 print_warn_def(const char *p)
@@ -2123,19 +1800,8 @@ print_misc_api()
 }
 
 void
-gen_output()
+gen_output_c()
 {
-    assign_event_ids();
-    assign_state_ids();
-
-    if (output_v_fptr != NULL) {
-        output_file = output_v_fptr;
-        dump_all();
-    }
-
-    compute_max_depth();
-    compute_max_regions();
-
     output_file = output_file_ptr;
     print_prod_info();
     print_prolog();

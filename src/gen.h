@@ -24,8 +24,12 @@
 #define OUTPUT_LANG_C	0
 #define OUTPUT_LANG_PY	1
 
+void write2file(const char *, ...);
+
 int init_output();
 void deinit_output();
 void gen_output();
+
+void gen_output_c();
 
 #endif // __GEN_H__
