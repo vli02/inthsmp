@@ -413,7 +413,7 @@ print_prod_info()
 {
     write2file("/* Generated code, don't edit. */\n");
     write2file("/* %s */\n", prod_name);
-    write2file("/* Version %d.%d.%d. */\n\n", prod_ver[0], prod_ver[1], prod_ver[2]);
+    write2file("/* Version %d.%d.%d */\n\n", prod_ver[0], prod_ver[1], prod_ver[2]);
 }
 
 static void

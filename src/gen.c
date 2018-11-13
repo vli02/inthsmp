@@ -54,9 +54,9 @@ int max_depth    = 1;
 int max_regions  = 1;
 int max_inits    = 1;
 
-static void (*gen_code_func[OUTPUT_LANG_END])(void) = {
+static void (*gen_code_func[OUTPUT_LANG_NULL])(void) = {
     gen_code_c,   // OUTPUT_LANG_C
-    0
+    gen_code_py
 };
 
 

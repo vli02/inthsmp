@@ -21,9 +21,9 @@
 
 #include "defines.h"
 
-#define OUTPUT_LANG_C	0
-#define OUTPUT_LANG_PY	1
-#define OUTPUT_LANG_END 2
+#define OUTPUT_LANG_C		0
+#define OUTPUT_LANG_PY		1
+#define OUTPUT_LANG_NULL	2
 
 void write2file(const char *, ...);
 
@@ -32,5 +32,6 @@ void deinit_output();
 void gen_output();
 
 void gen_code_c();
+void gen_code_py();
 
 #endif // __GEN_H__
