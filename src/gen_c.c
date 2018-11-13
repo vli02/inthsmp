@@ -1800,7 +1800,7 @@ print_misc_api()
 }
 
 void
-gen_output_c()
+gen_code_c()
 {
     output_file = output_file_ptr;
     print_prod_info();

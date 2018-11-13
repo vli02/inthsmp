@@ -30,6 +30,7 @@ extern char *g_output_fname;
 extern int   g_opt_d;
 extern int   g_opt_o;
 extern int   g_opt_v;
+extern int   g_opt_l;
 
 extern event_t *wildc_ev;
 extern state_t *start_st;
@@ -52,6 +53,11 @@ int max_super_sid  = -1;
 int max_depth    = 1;
 int max_regions  = 1;
 int max_inits    = 1;
+
+static void (*gen_code_func[OUTPUT_LANG_END])(void) = {
+    gen_code_c,   // OUTPUT_LANG_C
+    0
+};
 
 
 static void
@@ -536,31 +542,6 @@ gen_output()
     compute_max_depth();
     compute_max_regions();
 
-#if 0
-    output_file = output_file_ptr;
-    print_prod_info();
-    print_prolog();
-    print_h_header();
-    print_c_header();
-    print_super_states();
-    print_sub_states();
-    print_entry_path();
-    print_trans_path();
-    print_init_trans();
-    print_zone_map();
-    print_zone_depth();
-
-    print_run_api();
-    print_init_api();
-    print_misc_api();
-
-    print_epilog();
-
-    if (output_h_fptr != NULL) {
-        output_file = output_h_fptr;
-        print_prod_info();
-        print_h_header();
-    }
-#endif
-    gen_output_c();
+    assert(gen_code_func[g_opt_l]);
+    gen_code_func[g_opt_l]();
 }
