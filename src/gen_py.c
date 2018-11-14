@@ -65,6 +65,22 @@ print_epilog()
 }
 
 
+int append_ext_py(char *str, int len)
+{
+    /* append .py if needed */
+    if (len <= 3 ||
+        str[len - 3] != '.' ||
+        str[len - 2] != 'p' ||
+        str[len - 1] != 'y') {
+        str[len ++] = '.';
+        str[len ++] = 'p';
+        str[len ++] = 'y';
+        str[len   ] = 0;
+    }
+
+    return len;
+}
+
 void
 gen_code_py()
 {

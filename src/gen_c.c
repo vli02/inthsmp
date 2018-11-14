@@ -1771,16 +1771,13 @@ print_misc_api()
 int
 append_ext_c(char *str, int len)
 {
-    char dot = 0, ext;
-    if (len > 2) {
-        ext = str[len - 1];
-        dot = str[len - 2];
-    }
     /* append .c if needed */
-    if (dot == 0 || dot != '.' || ext != 'c') {
-        str[   len] = '.';
-        str[++ len] = 'c';
-        str[++ len] = 0;
+    if (len <= 2 ||
+        str[len - 2] != '.' ||
+        str[len - 1] != 'c') {
+        str[len ++] = '.';
+        str[len ++] = 'c';
+        str[len   ] = 0;
     }
 
     return len;

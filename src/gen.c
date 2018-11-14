@@ -61,7 +61,7 @@ static void (*const gen_code_fp[OUTPUT_LANG_NULL])(void) = {
 
 static int (*const add_ext_fp[OUTPUT_LANG_NULL])(char *, int) = {
     append_ext_c,
-    0
+    append_ext_py
 };
 
 
