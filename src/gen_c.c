@@ -1772,15 +1772,15 @@ int
 append_ext_c(char *str, int len)
 {
     char dot = 0, ext;
-    if (len > 3) {
-        dot = str[len - 3];
-        ext = str[len - 2];
+    if (len > 2) {
+        ext = str[len - 1];
+        dot = str[len - 2];
     }
     /* append .c if needed */
     if (dot == 0 || dot != '.' || ext != 'c') {
-        str[len - 1] = '.';
-        str[len ++] = 'c';
-        str[len ++] = 0;
+        str[   len] = '.';
+        str[++ len] = 'c';
+        str[++ len] = 0;
     }
 
     return len;

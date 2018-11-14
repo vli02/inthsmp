@@ -381,7 +381,7 @@ int
 init_output()
 {
     int retval = 0;
-    int i;
+    int len;
     const char *base;
     char *fname, *hname, *vname;
     char tab;
@@ -398,26 +398,26 @@ init_output()
         tab = 1;
         base = input_filename;
     }
-    i = strlen(base) + 1;
-    assert(i > 1);
-    fname = malloc(i + 16);
+    len = strlen(base);
+    assert(len > 0);
+    fname = malloc(len + 16);
     if (!fname) {
-        fprintf(stderr, "Failed to allocate memory of size %d.\n", i + 16);
+        fprintf(stderr, "Failed to allocate memory of size %d.\n", len + 16);
         retval = -1;
         goto output_err;
     }
     if (g_opt_d != 0) {
-        hname = malloc(i + 16);
+        hname = malloc(len + 16);
         if (!fname) {
-            fprintf(stderr, "Failed to allocate memory of size %d.\n", i + 16);
+            fprintf(stderr, "Failed to allocate memory of size %d.\n", len + 16);
             retval = -1;
             goto output_err;
         }
     }
     if (g_opt_v != 0) {
-        vname = malloc(i + 16);
+        vname = malloc(len + 16);
         if (!fname) {
-            fprintf(stderr, "Failed to allocate memory of size %d.\n", i + 16);
+            fprintf(stderr, "Failed to allocate memory of size %d.\n", len + 16);
             retval = -1;
             goto output_err;
         }
@@ -426,11 +426,11 @@ init_output()
     strcpy(fname, base);
     if (tab) {
         strcat(fname, ".tab");
-        i += 4;
+        len += 4;
     }
 
     /* append file extension */
-    i = add_ext_fp[g_opt_l](fname, i);
+    len = add_ext_fp[g_opt_l](fname, len);
 
     /* open .c file for writing */
     ofile = fopen(fname, "w");
@@ -444,7 +444,7 @@ init_output()
     if (hname) {
         strcpy(hname, fname);
         /* replace with .h */
-        hname[i - 2] = 'h';
+        hname[len - 1] = 'h';
 
         hfile = fopen(hname, "w");
         if (hfile == NULL) {
@@ -458,7 +458,7 @@ init_output()
     if (vname) {
         strcpy(vname, fname);
         /* replace with .h */
-        vname[i - 3] = 0;
+        vname[len - 2] = 0;
         strcat(vname, ".output");
 
         vfile = fopen(vname, "w");
