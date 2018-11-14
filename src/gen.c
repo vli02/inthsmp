@@ -54,9 +54,14 @@ int max_depth    = 1;
 int max_regions  = 1;
 int max_inits    = 1;
 
-static void (*gen_code_func[OUTPUT_LANG_NULL])(void) = {
+static void (*const gen_code_fp[OUTPUT_LANG_NULL])(void) = {
     gen_code_c,   // OUTPUT_LANG_C
     gen_code_py
+};
+
+static int (*const add_ext_fp[OUTPUT_LANG_NULL])(char *, int) = {
+    append_ext_c,
+    0
 };
 
 
@@ -379,7 +384,7 @@ init_output()
     int i;
     const char *base;
     char *fname, *hname, *vname;
-    char tab, dot, x;
+    char tab;
     FILE *ofile, *hfile, *vfile;
 
     fname = hname = vname = NULL;
@@ -424,22 +429,8 @@ init_output()
         i += 4;
     }
 
-    /* append or replace with .c if needed */
-    if (i > 3) {
-        dot = fname[i - 3];
-        x = fname[i - 2];
-    } else {
-        dot = 0;
-    }
-    if (dot == 0 ||
-        dot != '.' || (x != 'c' && x != 'h')) {
-        fname[i - 1] = '.';
-        fname[i ++] = 'c';
-        fname[i ++] = 0;
-    } else if (x == 'h') {
-        fname[i - 2] = 'c';
-        g_opt_d = 1;
-    }
+    /* append file extension */
+    i = add_ext_fp[g_opt_l](fname, i);
 
     /* open .c file for writing */
     ofile = fopen(fname, "w");
@@ -482,6 +473,9 @@ output_err:
         free(fname);
         if (hname) free(hname);
         if (vname) free(vname);
+        if (ofile) fclose(ofile);
+        if (hfile) fclose(hfile);
+        if (vfile) fclose(vfile);
     } else {
         output_file_name = fname;
         output_h_name = hname;
@@ -542,6 +536,6 @@ gen_output()
     compute_max_depth();
     compute_max_regions();
 
-    assert(gen_code_func[g_opt_l]);
-    gen_code_func[g_opt_l]();
+    assert(gen_code_fp[g_opt_l]);
+    gen_code_fp[g_opt_l]();
 }

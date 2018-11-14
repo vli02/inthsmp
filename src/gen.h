@@ -31,6 +31,9 @@ int init_output();
 void deinit_output();
 void gen_output();
 
+int append_ext_c(char *, int);
+int append_ext_py(char *, int);
+
 void gen_code_c();
 void gen_code_py();
 
