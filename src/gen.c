@@ -64,6 +64,11 @@ static int (*const add_ext_fp[OUTPUT_LANG_NULL])(char *, int) = {
     append_ext_py
 };
 
+static int ext_len[OUTPUT_LANG_NULL] = {
+    1,
+    2
+};
+
 
 static void
 assign_event_ids()
@@ -443,8 +448,8 @@ init_output()
     /* open .h file for writing */
     if (hname) {
         strcpy(hname, fname);
-        /* replace with .h */
-        hname[len - 1] = 'h';
+        /* replace extension with h */
+        hname[len - ext_len[g_opt_l]] = 'h';
 
         hfile = fopen(hname, "w");
         if (hfile == NULL) {
@@ -457,9 +462,9 @@ init_output()
     /* open .output file for writing */
     if (vname) {
         strcpy(vname, fname);
-        /* replace with .h */
-        vname[len - 2] = 0;
-        strcat(vname, ".output");
+        /* replace extension with output */
+        vname[len - ext_len[g_opt_l]] = 0;
+        strcat(vname, "output");
 
         vfile = fopen(vname, "w");
         if (vfile == NULL) {
