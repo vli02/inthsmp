@@ -33,11 +33,20 @@ do {\
 extern const int  prod_ver[3];
 extern const char *prod_name;
 
+extern event_t *wildc_ev;
+extern state_t *start_st;
+extern link_t dest_link;
 extern text_t     *prolog_code;
 extern text_t     *epilog_code;
+extern text_t     *start_code;
 
 extern FILE *output_file_ptr;
 extern FILE *output_file;
+
+extern int max_eid;
+extern int max_sid;
+extern int max_leaf_sid;
+extern int max_super_sid;
 
 
 static void
@@ -64,6 +73,134 @@ print_epilog()
     }
 }
 
+static void
+print_event_list()
+{
+    int i;
+    event_t *ev;
+
+    write2file("__hh_events = [");
+    i = 0;
+    while (i <= max_eid) {
+        ev = find_event_by_eid(i);
+        if (ev != wildc_ev) {
+            if (i > 0) {
+                write2file(",");
+            }
+            write2file("\n    \"%s\"", ev->name->txt);
+        }
+        i ++;
+    }
+    write2file("\n]\n\n");
+}
+
+static void
+print_state_list()
+{
+    int i;
+    state_t *st;
+
+    write2file("__hh_states = [");
+    i = 0;
+    while (i <= max_sid) {
+        st = find_state_by_sid(i);
+        if (i > 0) {
+            write2file(",");
+        }
+        write2file("\n    \"%s\"", st->name->txt);
+        i ++;
+    }
+    write2file("\n]\n\n");
+}
+
+static void
+print_super_states()
+{
+    int i, sid;
+    state_t *st;
+
+    write2file("__hh_super = [");
+    i = 0;
+    while (i <= max_sid) {
+        st = find_state_by_sid(i);
+        assert(st);
+        sid = (st->super) ? st->super->id : -1;
+        if (i != 0) {
+            write2file(",");
+        }
+        if ((i % 8) == 0) {
+            write2file("\n");
+        }
+        write2file("%4d", sid);
+        i ++;
+    }
+    write2file("\n]\n\n");
+}
+
+static void
+print_sub_states()
+{
+    int i, j, sid;
+    state_t *st;
+
+    write2file("__hh_sub = [");
+    i = max_leaf_sid + 1;
+    j = 0;
+    while (i <= max_sid) {
+        st = find_state_by_sid(i);
+        assert(st && st->sub);
+        sid = st->sub->id;
+        if (j != 0) {
+            write2file(",");
+        }
+        if ((j % 8) == 0) {
+            write2file("\n");
+        }
+        write2file("%4d", sid);
+        i ++;
+        j ++;
+    }
+    write2file("\n]\n\n");
+}
+
+static int
+print_parent_sid(state_t *st)
+{
+    int n = 0;
+    if (st->super) {
+        n = print_parent_sid(st->super);
+    }
+    if (n != 0) {
+        write2file(",");
+        if ((n % 8) == 0) {
+            write2file("\n ");
+        }
+    }
+    write2file("%4d", st->id);
+    return ++n;
+}
+
+static void
+print_entry_path()
+{
+    int i;
+    state_t *st;
+
+    write2file("__hh_entry_path = [");
+    i = 0;
+    while (i <= max_leaf_sid) {
+        st = find_state_by_sid(i);
+        if (i != 0) {
+            write2file(",");
+        }
+        write2file("\n[");
+        print_parent_sid(st);
+        write2file("]");
+        i ++;
+    }
+    write2file("\n]\n\n");
+}
+
 
 int append_ext_py(char *str, int len)
 {
@@ -87,6 +224,12 @@ gen_code_py()
     output_file = output_file_ptr;
     print_prod_info();
     print_prolog();
+
+    print_event_list();
+    print_state_list();
+    print_super_states();
+    print_sub_states();
+    print_entry_path();
 
     print_epilog();
 }
