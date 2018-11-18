@@ -104,6 +104,9 @@ readchar()
 
     yytext[yylength] = ch;
     yytext[++ yylength] = 0;
+    if (ch == '\n') {
+        yyinput->lineno ++;
+    }
     return ch;
 }
 
@@ -204,6 +207,9 @@ parse_identifier()
         /* save it for use in next read */
         readsaved = 1;
         savedch = c;
+        if (c == '\n') {
+            yyinput->lineno --;
+        }
 
         /* discard last read */
         yylength --;
@@ -225,7 +231,6 @@ parse_comment_2(int block)
     do {
         c = readchar();
         if (c == '\n') {
-            yyinput->lineno ++;
             if (!block) {
                 tok = TOK_L_COMMENT;
                 break;
@@ -340,7 +345,6 @@ parse_c_stmt_2(int predef)
     do {
         c = readchar();
         if (c == '\n') {
-            yyinput->lineno ++;
             tok = c;
         } else if (c == '/') {
             tok = parse_comment();
@@ -402,7 +406,6 @@ parse_c_expr()
     do {
         c = readchar();
         if (c == '\n') {
-            yyinput->lineno ++;
             tok = c;
         } else if (c == '/') {
             tok = parse_comment();
@@ -588,7 +591,6 @@ again:
         c == 0 /* error */) {
         token = 0;
     } else if (c == '\n') {
-        yyinput->lineno ++;  /* record line number */
         goto again;
     } else if (isspace(c)) {
         goto again;
@@ -650,9 +652,7 @@ yylex()
         yylength = 0;
         do {
             ch = readchar();
-            if (ch == '\n') {
-                yyinput->lineno ++;  /* record line number */
-            } else if (ch == EOF) {
+            if (ch == EOF) {
                 /* discard last read */
                 yylength --;
                 yytext[yylength] = 0;

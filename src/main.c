@@ -29,7 +29,7 @@
 
 extern int yyparse();
 
-const int prod_ver[3] = { 1, 0, 1 };
+const int prod_ver[3] = { 1, 0, 2 };
 const char *prod_name = "Intuitive Hierarchical State Machine Programming";
 
 static const char *optString = "do:l:W:nvShVLAi";
