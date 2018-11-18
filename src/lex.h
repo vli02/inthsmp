@@ -26,6 +26,8 @@ typedef struct yyinput_s {
     const char *filename;
     unsigned int lastlineno;
     unsigned int lineno;
+    unsigned int lastcolno;
+    unsigned int colno;
 } yyinput_t;
 
 int init_lex();

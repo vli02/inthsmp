@@ -104,9 +104,16 @@ readchar()
 
     yytext[yylength] = ch;
     yytext[++ yylength] = 0;
+
     if (ch == '\n') {
         yyinput->lineno ++;
+        yyinput->colno = 1;
+    } else if (ch != '\t') {
+        yyinput->colno ++;
+    } else {
+        yyinput->colno += (TAB_SPACE - yyinput->colno % (TAB_SPACE)) + 1;
     }
+
     return ch;
 }
 
@@ -196,8 +203,10 @@ parse_identifier()
 {
     int tok = 0;
     int c;
+    int colno;
 
     do {
+        colno = yyinput->colno;
         c = readchar();
     } while (c == '_' ||
              isalpha(c) ||
@@ -210,6 +219,7 @@ parse_identifier()
         if (c == '\n') {
             yyinput->lineno --;
         }
+        yyinput->colno = colno;
 
         /* discard last read */
         yylength --;
@@ -511,6 +521,8 @@ init_lex()
         yyinput->filename = input_filename;
         yyinput->lastlineno = 1;
         yyinput->lineno = 1;
+        yyinput->lastcolno = 1;
+        yyinput->colno = 1;
     } else {
         fprintf(stderr, "File not found: %s!\n", input_filename);
         return -1;
@@ -583,6 +595,7 @@ yylex_internal()
 
 again:
     yyinput->lastlineno = yyinput->lineno;
+    yyinput->lastcolno  = yyinput->colno;
     yytext = &bigbuff->buff[++bigbuff->pos];    /* reset yytext */
     yylength = 0;
 
@@ -648,6 +661,7 @@ yylex()
         token = yylex_internal();
     } else if (readsaved != 2) {
         yyinput->lastlineno = yyinput->lineno;
+        yyinput->lastcolno  = yyinput->colno;
         yytext = &bigbuff->buff[++bigbuff->pos];    /* reset yytext */
         yylength = 0;
         do {

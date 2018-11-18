@@ -750,7 +750,7 @@ save_api_prefix(const char *p, unsigned int len)
 }
 
 text_t *
-build_text(const char *s, unsigned int line)
+build_text(const char *s, unsigned int line, unsigned int col)
 {
     text_t *t;
     text_array_t *a;
@@ -769,6 +769,7 @@ build_text(const char *s, unsigned int line)
 
     t->txt = s;
     t->line = line;
+    t->col = col;
 
     return t;
 }

@@ -19,6 +19,8 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
+#define TAB_SPACE   8
+
 typedef struct list_s {
     void   *head;
     void   *tail;
@@ -50,6 +52,7 @@ enum {
 typedef struct text_s {
     const char     *txt;
     unsigned int    line;
+    unsigned int    col;
 } text_t;
 
 /* event */
@@ -145,7 +148,7 @@ state_t *find_state_by_sid(int);
 
 char *save_api_prefix(const char *, unsigned int);
 
-text_t *build_text(const char *, unsigned int);
+text_t *build_text(const char *, unsigned int, unsigned int);
 
 int validate_input();
 
