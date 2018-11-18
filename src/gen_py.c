@@ -35,6 +35,7 @@ extern const char *prod_name;
 
 extern event_t *wildc_ev;
 extern state_t *start_st;
+extern link_t state_link;
 extern link_t dest_link;
 extern text_t     *prolog_code;
 extern text_t     *epilog_code;
@@ -201,6 +202,75 @@ print_entry_path()
     write2file("\n]\n\n");
 }
 
+static void
+print_func_noop()
+{
+    write2file("def __hh_func_noop():\n    pass\n\n");
+}
+
+static void
+print_block(char *indent, const char *block)
+{
+    write2file("%s%s\n\n", indent, "pass");
+}
+
+static void
+print_entry_exit()
+{
+    int i;
+    char *p;
+    int comma;
+    state_t *st;
+
+    st = state_link.head;
+    while (st) {
+        if (st->entry) {
+            p = "def __hh_entry_%s():\n";
+            write2file(p, st->name->txt);
+            print_block("    ", st->entry->txt);
+        }
+        if (st->exit) {
+            p = "def __hh_exit_%s():\n";
+            write2file(p, st->name->txt);
+            print_block("    ", st->entry->txt);
+        }
+        st = st->link;
+    }
+
+    comma = 0;
+    write2file("__hh_entries = {\n");
+    for (i = 0; i <= max_sid; i++) {
+        st = find_state_by_sid(i);
+        assert(st);
+        if (st->entry) {
+            if (comma) {
+                write2file(",\n");
+            }
+            p = "    %d: __hh_entry_%s";
+            write2file(p, st->id, st->name->txt);
+            comma = 1;
+        }
+        st = st->link;
+    }
+    write2file("\n}\n\n");
+
+    comma = 0;
+    write2file("__hh_exits = {\n");
+    for (i = 0; i <= max_sid; i++) {
+        st = find_state_by_sid(i);
+        assert(st);
+        if (st->exit) {
+            if (comma) {
+                write2file(",\n");
+            }
+            p = "    %d: __hh_exit_%s";
+            write2file(p, st->id, st->name->txt);
+            comma = 1;
+        }
+        st = st->link;
+    }
+    write2file("\n}\n\n");
+}
 
 int append_ext_py(char *str, int len)
 {
@@ -230,6 +300,9 @@ gen_code_py()
     print_super_states();
     print_sub_states();
     print_entry_path();
+
+    print_func_noop();
+    print_entry_exit();
 
     print_epilog();
 }
