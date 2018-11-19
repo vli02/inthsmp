@@ -108,10 +108,8 @@ readchar()
     if (ch == '\n') {
         yyinput->lineno ++;
         yyinput->colno = 1;
-    } else if (ch != '\t') {
-        yyinput->colno ++;
     } else {
-        yyinput->colno += (TAB_SPACE - yyinput->colno % (TAB_SPACE)) + 1;
+        yyinput->colno ++;
     }
 
     return ch;

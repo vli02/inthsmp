@@ -19,8 +19,6 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
-#define TAB_SPACE   8
-
 typedef struct list_s {
     void   *head;
     void   *tail;

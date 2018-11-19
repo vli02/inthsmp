@@ -59,6 +59,12 @@ print_prod_info()
 }
 
 static void
+print_block(char *indent, text_t *block)
+{
+    write2file("%s%s\n\n", indent, "pass" /*block->txt*/);
+}
+
+static void
 print_prolog()
 {
     if (prolog_code) {
@@ -209,12 +215,6 @@ print_func_noop()
 }
 
 static void
-print_block(char *indent, const char *block)
-{
-    write2file("%s%s\n\n", indent, "pass");
-}
-
-static void
 print_entry_exit()
 {
     int i;
@@ -227,12 +227,12 @@ print_entry_exit()
         if (st->entry) {
             p = "def __hh_entry_%s():\n";
             write2file(p, st->name->txt);
-            print_block("    ", st->entry->txt);
+            print_block("    ", st->entry);
         }
         if (st->exit) {
             p = "def __hh_exit_%s():\n";
             write2file(p, st->name->txt);
-            print_block("    ", st->entry->txt);
+            print_block("    ", st->entry);
         }
         st = st->link;
     }
