@@ -336,19 +336,19 @@ exit_func:
 
 c_expr:
          TOK_C_EXPR
-		{ $$ = build_text(yytext, yyinput->lastlineno, yyinput->lastcolno);
+		{ $$ = build_text(yytext, yylength, yyinput->lastlineno, yyinput->lastcolno);
 		  if (!$$) { YYABORT; } }
        ;
 
 c_stmt:
          TOK_C_STMT
-		{ $$ = build_text(yytext, yyinput->lastlineno, yyinput->lastcolno);
+		{ $$ = build_text(yytext, yylength, yyinput->lastlineno, yyinput->lastcolno);
 		  if (!$$) { YYABORT; } }
        ;
 
 identifier:
         TOK_IDENTIFIER
-		{ $$ = build_text(yytext, yyinput->lastlineno, yyinput->lastcolno);
+		{ $$ = build_text(yytext, yylength, yyinput->lastlineno, yyinput->lastcolno);
 		  if (!$$) { YYABORT; } }
        ;
 

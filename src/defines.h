@@ -48,7 +48,8 @@ enum {
 };
 
 typedef struct text_s {
-    const char     *txt;
+    char           *txt;
+    unsigned int    len;
     unsigned int    line;
     unsigned int    col;
 } text_t;
@@ -146,7 +147,7 @@ state_t *find_state_by_sid(int);
 
 char *save_api_prefix(const char *, unsigned int);
 
-text_t *build_text(const char *, unsigned int, unsigned int);
+text_t *build_text(char *, unsigned int, unsigned int, unsigned int);
 
 int validate_input();
 

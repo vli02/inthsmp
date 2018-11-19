@@ -58,10 +58,71 @@ print_prod_info()
     write2file("# Version %d.%d.%d\n\n", prod_ver[0], prod_ver[1], prod_ver[2]);
 }
 
+static char *
+print_one_line(const char *indent, char *head, unsigned int offset, int first)
+{
+    char *next;
+
+    next = strchr(head, '\n');
+    if (next) {
+        *next = 0;
+        next ++;
+    }
+
+    while (*head == ' ' && offset) {
+        head ++;
+        offset --;
+    }
+
+    if (*head) {
+        write2file("%s%s\n", indent, head);
+    } else if (first) {
+        write2file("%spass\n", indent);
+    } else {
+        write2file("\n");
+    }
+
+    return next;
+}
+
 static void
 print_block(char *indent, text_t *block)
 {
-    write2file("%s%s\n\n", indent, "pass" /*block->txt*/);
+    char *txt = block->txt;
+    unsigned int len = block->len;
+    unsigned int offset = block->col - 1;
+
+    assert(block->col);
+
+    /* remove '}', spaces and new line from tail */
+    assert(len && txt[len - 1] == '}');
+    txt[-- len] = 0;
+    while (len &&
+           (txt[len - 1] == ' ' ||
+            txt[len - 1] == '\n')) {
+        txt[-- len] = 0;
+    }
+
+    /* remove '{', spaces and new line from head */
+    assert(len && *txt == '{');
+    *txt = ' ';
+    while (*txt == ' ' ||
+           *txt == '\n') {
+        if (*txt == '\n') {
+            offset = 0;
+        } else {
+            offset ++;
+        }
+        txt ++;
+    }
+
+    /* print a line a time */
+    txt = print_one_line(indent, txt, 0, 1);
+    while (txt && *txt) {
+        txt = print_one_line(indent, txt, offset, 0);
+    }
+
+    write2file("\n");
 }
 
 static void
@@ -232,7 +293,7 @@ print_entry_exit()
         if (st->exit) {
             p = "def __hh_exit_%s():\n";
             write2file(p, st->name->txt);
-            print_block("    ", st->entry);
+            print_block("    ", st->exit);
         }
         st = st->link;
     }
