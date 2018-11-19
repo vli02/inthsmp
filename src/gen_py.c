@@ -270,9 +270,29 @@ print_entry_path()
 }
 
 static void
-print_func_noop()
+print_support_lib()
 {
-    write2file("def __hh_func_noop():\n    pass\n\n");
+    const char *p;
+
+    /* Accept exception */
+    p = "class __hh_accept_exception(Exception):\n    pass\n\n";
+    write2file(p);
+
+    /* Abort exception */
+    p = "class __hh_abort_exception(Exception):\n    pass\n\n";
+    write2file(p);
+
+    /* no-op function */
+    p = "def __hh_func_noop():\n    pass\n\n";
+    write2file(p);
+
+    /* accept */
+    p = "def __hh_accept():\n    raise __hh_accept_exception\n\n";
+    write2file(p);
+
+    /* abort */
+    p = "def __hh_abort():\n    raise __hh_abort_exception\n\n";
+    write2file(p);
 }
 
 static void
@@ -333,6 +353,30 @@ print_entry_exit()
     write2file("\n}\n\n");
 }
 
+static void
+print_guard_action()
+{
+    char *p;
+    dest_t  *dt;
+
+    dt = dest_link.head;
+    while (dt) {
+        if (dt->guard) {
+            p = "def __hh_guard_%d():\n";
+            write2file(p, dt->id);
+            p = "    return%s\n\n";
+            write2file(p, dt->guard->txt);
+        }
+
+        if (dt->action) {
+            p = "def __hh_action_%d():\n";
+            write2file(p, dt->id);
+            print_block("    ", dt->action);
+        }
+        dt = dt->link;
+    }
+}
+
 int append_ext_py(char *str, int len)
 {
     /* append .py if needed */
@@ -362,8 +406,9 @@ gen_code_py()
     print_sub_states();
     print_entry_path();
 
-    print_func_noop();
+    print_support_lib();
     print_entry_exit();
+    print_guard_action();
 
     print_epilog();
 }
