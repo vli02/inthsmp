@@ -86,7 +86,7 @@ print_one_line(const char *indent, char *head, unsigned int offset, int first)
 }
 
 static void
-print_block(char *indent, text_t *block)
+print_stmt(char *indent, text_t *block)
 {
     char *txt = block->txt;
     unsigned int len = block->len;
@@ -299,21 +299,18 @@ static void
 print_entry_exit()
 {
     int i;
-    char *p;
     int comma;
     state_t *st;
 
     st = state_link.head;
     while (st) {
         if (st->entry) {
-            p = "def __hh_entry_%s():\n";
-            write2file(p, st->name->txt);
-            print_block("    ", st->entry);
+            write2file("def __hh_entry_%s():\n", st->name->txt);
+            print_stmt("    ", st->entry);
         }
         if (st->exit) {
-            p = "def __hh_exit_%s():\n";
-            write2file(p, st->name->txt);
-            print_block("    ", st->exit);
+            write2file("def __hh_exit_%s():\n", st->name->txt);
+            print_stmt("    ", st->exit);
         }
         st = st->link;
     }
@@ -327,8 +324,7 @@ print_entry_exit()
             if (comma) {
                 write2file(",\n");
             }
-            p = "    %d: __hh_entry_%s";
-            write2file(p, st->id, st->name->txt);
+            write2file("    %d: __hh_entry_%s", st->id, st->name->txt);
             comma = 1;
         }
         st = st->link;
@@ -344,8 +340,7 @@ print_entry_exit()
             if (comma) {
                 write2file(",\n");
             }
-            p = "    %d: __hh_exit_%s";
-            write2file(p, st->id, st->name->txt);
+            write2file("    %d: __hh_exit_%s", st->id, st->name->txt);
             comma = 1;
         }
         st = st->link;
@@ -356,25 +351,55 @@ print_entry_exit()
 static void
 print_guard_action()
 {
-    char *p;
     dest_t  *dt;
 
     dt = dest_link.head;
     while (dt) {
         if (dt->guard) {
-            p = "def __hh_guard_%d():\n";
-            write2file(p, dt->id);
-            p = "    return%s\n\n";
-            write2file(p, dt->guard->txt);
+            write2file("def __hh_guard_%d():\n", dt->id);
+            write2file("    return%s\n\n", dt->guard->txt);
         }
 
         if (dt->action) {
-            p = "def __hh_action_%d():\n";
-            write2file(p, dt->id);
-            print_block("    ", dt->action);
+            write2file("def __hh_action_%d():\n", dt->id);
+            print_stmt("    ", dt->action);
         }
         dt = dt->link;
     }
+}
+
+static void
+print_init_func()
+{
+    int i;
+    int comma;
+    state_t *st;
+
+    st = state_link.head;
+    while (st) {
+        if (st->init &&
+            st->init->action) {
+            write2file("def __hh_init_%d():\n", st->init->id);
+            print_stmt("    ", st->init->action);
+        }
+        st = st->link;
+    }
+
+    comma = 0;
+    write2file("__hh_inits = {\n");
+    for (i = max_leaf_sid + 1; i <= max_sid; i++) {
+        st = find_state_by_sid(i);
+        assert(st);
+        if (st->init &&
+            st->init->action) {
+            if (comma) {
+                write2file(",\n");
+            }
+            write2file("    %d: __hh_init_%d", st->id, st->init->id);
+            comma = 1;
+        }
+    }
+    write2file("\n}\n\n");
 }
 
 int append_ext_py(char *str, int len)
@@ -409,6 +434,7 @@ gen_code_py()
     print_support_lib();
     print_entry_exit();
     print_guard_action();
+    print_init_func();
 
     print_epilog();
 }
