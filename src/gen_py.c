@@ -217,7 +217,11 @@ print_sub_states()
     while (i <= max_sid) {
         st = find_state_by_sid(i);
         assert(st && st->sub);
-        sid = st->sub->id;
+        if (st->init) {
+            sid = st->init->st->id;
+        } else {
+            sid = st->sub->id;
+        }
         if (j != 0) {
             write2file(",");
         }
