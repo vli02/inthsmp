@@ -1313,16 +1313,10 @@ print_run_i()
         st = find_state_by_sid(i);
         assert(st);
         if (st->entry) {
-            p = "      case %d:\n";
-            write2file(p, i);
-
-            if (st->entry) {
-                WRITE_LINENO(st->entry);
-                p = "        %s\n";
-                write2file(p, st->entry->txt);
-            }
-            p = "        break;\n";
-            write2file(p);
+            write2file("      case %d:\n", i);
+            WRITE_LINENO(st->entry);
+            write2file("        %s\n", st->entry->txt);
+            write2file("        break;\n");
         }
     }
     p = "      default: break;\n"
@@ -1382,16 +1376,10 @@ print_run_i()
         assert(st);
         if (st->init &&
             st->init->action) {
-            p = "    case %d:\n";
-            write2file(p, st->init->id);
-
-            if (st->entry) {
-                WRITE_LINENO(st->init->action);
-                p = "      %s\n";
-                write2file(p, st->init->action->txt);
-            }
-            p = "      break;\n";
-            write2file(p);
+            write2file("    case %d:\n", st->init->id);
+            WRITE_LINENO(st->init->action);
+            write2file("      %s\n", st->init->action->txt);
+            write2file("      break;\n");
         }
     }
     p = "    default: break;\n"
