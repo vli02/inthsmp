@@ -406,6 +406,17 @@ print_init_func()
     write2file("\n}\n\n");
 }
 
+static void
+print_start_func()
+{
+    write2file("def __hh_start():\n");
+    if (start_code) {
+        print_stmt("    ", start_code);
+    } else {
+        write2file("    pass\n\n");
+    }
+}
+
 int append_ext_py(char *str, int len)
 {
     /* append .py if needed */
@@ -439,6 +450,7 @@ gen_code_py()
     print_entry_exit();
     print_guard_action();
     print_init_func();
+    print_start_func();
 
     print_epilog();
 }
