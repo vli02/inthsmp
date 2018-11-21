@@ -121,8 +121,6 @@ print_stmt(char *indent, text_t *block)
     while (txt && *txt) {
         txt = print_one_line(indent, txt, offset, 0);
     }
-
-    write2file("\n");
 }
 
 static void
@@ -162,6 +160,102 @@ print_event_list()
     write2file("\n]\n\n");
 }
 
+static void
+print_guard_action()
+{
+    int comma;
+    dest_t  *dt;
+
+    dt = dest_link.head;
+    while (dt) {
+        if (dt->guard) {
+            write2file("def __hh_guard_%d():\n", dt->id);
+            write2file("    return%s\n\n", dt->guard->txt);
+        }
+
+        if (dt->action) {
+            write2file("def __hh_action_%d():\n", dt->id);
+            print_stmt("    ", dt->action);
+            write2file("\n");
+        }
+        dt = dt->link;
+    }
+
+    comma = 0;
+    write2file("__hh_guards = {\n");
+    dt = dest_link.head;
+    while (dt) {
+        if (dt->guard) {
+            if (comma) {
+                write2file(",\n");
+            }
+            write2file("    %d: __hh_guard_%d", dt->id, dt->id);
+            comma = 1;
+        }
+        dt = dt->link;
+    }
+    write2file("\n}\n\n");
+
+   comma = 0;
+    write2file("__hh_actions = {\n");
+    dt = dest_link.head;
+    while (dt) {
+        if (dt->action) {
+            if (comma) {
+                write2file(",\n");
+            }
+            write2file("    %d: __hh_action_%d", dt->id, dt->id);
+            comma = 1;
+        }
+        dt = dt->link;
+    }
+    write2file("\n}\n\n");
+}
+
+static void
+print_state_classes()
+{
+    state_t *st;
+
+    st = state_link.head;
+    while (st) {
+        write2file("class __hh_state_%s():\n", st->name->txt);
+        write2file("    name = \"%s\"\n", st->name->txt);
+        write2file("\n");
+
+            write2file("    def enter(id):\n");
+        if (st->super) {
+            write2file("        if id != %d:\n", st->super->id);
+            write2file("            __hh_states[%d].enter(id)\n", st->super->id);
+        } else {
+            write2file("        assert id == -1\n");
+        }
+        if (st->entry) {
+            print_stmt("        ", st->entry);
+        } else {
+            write2file("        pass\n");
+        }
+        write2file("\n");
+
+            write2file("    def exit(id):\n");
+        if (st->exit) {
+            print_stmt("        ", st->exit);
+        } else {
+            write2file("        pass\n");
+        }
+        if (st->super) {
+            write2file("        if id != %d:\n", st->super->id);
+            write2file("            __hh_states[%d].exit(id)\n", st->super->id);
+        } else {
+            write2file("        assert id == -1\n");
+        }
+        write2file("\n");
+
+        st = st->link;
+    }
+}
+
+#if 0
 static void
 print_state_list()
 {
@@ -353,26 +447,6 @@ print_entry_exit()
 }
 
 static void
-print_guard_action()
-{
-    dest_t  *dt;
-
-    dt = dest_link.head;
-    while (dt) {
-        if (dt->guard) {
-            write2file("def __hh_guard_%d():\n", dt->id);
-            write2file("    return%s\n\n", dt->guard->txt);
-        }
-
-        if (dt->action) {
-            write2file("def __hh_action_%d():\n", dt->id);
-            print_stmt("    ", dt->action);
-        }
-        dt = dt->link;
-    }
-}
-
-static void
 print_init_func()
 {
     int i;
@@ -416,6 +490,7 @@ print_start_func()
         write2file("    pass\n\n");
     }
 }
+#endif
 
 int append_ext_py(char *str, int len)
 {
@@ -441,6 +516,9 @@ gen_code_py()
     print_prolog();
 
     print_event_list();
+    print_guard_action();
+    print_state_classes();
+#if 0
     print_state_list();
     print_super_states();
     print_sub_states();
@@ -448,9 +526,9 @@ gen_code_py()
 
     print_support_lib();
     print_entry_exit();
-    print_guard_action();
     print_init_func();
     print_start_func();
+#endif
 
     print_epilog();
 }
