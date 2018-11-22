@@ -161,6 +161,61 @@ print_event_list()
 }
 
 static void
+print_entry_exit()
+{
+    int i;
+    int comma;
+    state_t *st;
+
+    st = state_link.head;
+    while (st) {
+        if (st->entry) {
+            write2file("def __hh_entry_%s():\n", st->name->txt);
+            print_stmt("    ", st->entry);
+            write2file("\n");
+        }
+        if (st->exit) {
+            write2file("def __hh_exit_%s():\n", st->name->txt);
+            print_stmt("    ", st->exit);
+            write2file("\n");
+        }
+        st = st->link;
+    }
+
+    comma = 0;
+    write2file("__hh_entries = {\n");
+    for (i = 0; i <= max_sid; i++) {
+        st = find_state_by_sid(i);
+        assert(st);
+        if (st->entry) {
+            if (comma) {
+                write2file(",\n");
+            }
+            write2file("    %d: __hh_entry_%s", st->id, st->name->txt);
+            comma = 1;
+        }
+        st = st->link;
+    }
+    write2file("\n}\n\n");
+
+    comma = 0;
+    write2file("__hh_exits = {\n");
+    for (i = 0; i <= max_sid; i++) {
+        st = find_state_by_sid(i);
+        assert(st);
+        if (st->exit) {
+            if (comma) {
+                write2file(",\n");
+            }
+            write2file("    %d: __hh_exit_%s", st->id, st->name->txt);
+            comma = 1;
+        }
+        st = st->link;
+    }
+    write2file("\n}\n\n");
+}
+
+static void
 print_guard_action()
 {
     int comma;
@@ -215,44 +270,35 @@ print_guard_action()
 static void
 print_state_classes()
 {
+    int i;
     state_t *st;
+
+    write2file("from inthsm import BaseState\n\n");
 
     st = state_link.head;
     while (st) {
-        write2file("class __hh_state_%s():\n", st->name->txt);
-        write2file("    name = \"%s\"\n", st->name->txt);
-        write2file("\n");
-
-            write2file("    def enter(id):\n");
-        if (st->super) {
-            write2file("        if id != %d:\n", st->super->id);
-            write2file("            __hh_states[%d].enter(id)\n", st->super->id);
-        } else {
-            write2file("        assert id == -1\n");
-        }
-        if (st->entry) {
-            print_stmt("        ", st->entry);
-        } else {
-            write2file("        pass\n");
-        }
-        write2file("\n");
-
-            write2file("    def exit(id):\n");
-        if (st->exit) {
-            print_stmt("        ", st->exit);
-        } else {
-            write2file("        pass\n");
-        }
-        if (st->super) {
-            write2file("        if id != %d:\n", st->super->id);
-            write2file("            __hh_states[%d].exit(id)\n", st->super->id);
-        } else {
-            write2file("        assert id == -1\n");
-        }
+        write2file("class __hh_state_%s(BaseState):\n", st->name->txt);
+        write2file("    def __init__(self):\n");
+        write2file("        super().__init__(\"%s\", %d, %d)\n",
+                                             st->name->txt,
+                                             st->id,
+                                             st->super ? st->super->id : -1);
         write2file("\n");
 
         st = st->link;
     }
+
+    write2file("__hh_states = [");
+    i = 0;
+    while (i <= max_sid) {
+        st = find_state_by_sid(i);
+        if (i > 0) {
+            write2file(",");
+        }
+        write2file("\n    __hh_state_%s()", st->name->txt);
+        i ++;
+    }
+    write2file("\n]\n\n");
 }
 
 #if 0
@@ -394,59 +440,6 @@ print_support_lib()
 }
 
 static void
-print_entry_exit()
-{
-    int i;
-    int comma;
-    state_t *st;
-
-    st = state_link.head;
-    while (st) {
-        if (st->entry) {
-            write2file("def __hh_entry_%s():\n", st->name->txt);
-            print_stmt("    ", st->entry);
-        }
-        if (st->exit) {
-            write2file("def __hh_exit_%s():\n", st->name->txt);
-            print_stmt("    ", st->exit);
-        }
-        st = st->link;
-    }
-
-    comma = 0;
-    write2file("__hh_entries = {\n");
-    for (i = 0; i <= max_sid; i++) {
-        st = find_state_by_sid(i);
-        assert(st);
-        if (st->entry) {
-            if (comma) {
-                write2file(",\n");
-            }
-            write2file("    %d: __hh_entry_%s", st->id, st->name->txt);
-            comma = 1;
-        }
-        st = st->link;
-    }
-    write2file("\n}\n\n");
-
-    comma = 0;
-    write2file("__hh_exits = {\n");
-    for (i = 0; i <= max_sid; i++) {
-        st = find_state_by_sid(i);
-        assert(st);
-        if (st->exit) {
-            if (comma) {
-                write2file(",\n");
-            }
-            write2file("    %d: __hh_exit_%s", st->id, st->name->txt);
-            comma = 1;
-        }
-        st = st->link;
-    }
-    write2file("\n}\n\n");
-}
-
-static void
 print_init_func()
 {
     int i;
@@ -516,6 +509,7 @@ gen_code_py()
     print_prolog();
 
     print_event_list();
+    print_entry_exit();
     print_guard_action();
     print_state_classes();
 #if 0
@@ -525,7 +519,6 @@ gen_code_py()
     print_entry_path();
 
     print_support_lib();
-    print_entry_exit();
     print_init_func();
     print_start_func();
 #endif
