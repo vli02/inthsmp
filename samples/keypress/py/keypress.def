@@ -70,6 +70,7 @@ s211: d -> s21	{ print("s211-d-s21;", end = " ") }
 
 %%
 
-__hh_states[3].on('c', __hh_states, __hh_entries, __hh_exits, __hh_guards, __hh_actions, __hh_inits)
+__hh_states[0].on('c', __hh_states, __hh_entries, __hh_exits, __hh_guards, __hh_actions, __hh_inits)
+__hh_states[0].on('g', __hh_states, __hh_entries, __hh_exits, __hh_guards, __hh_actions, __hh_inits)
 
 # test python epilog

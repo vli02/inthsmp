@@ -38,7 +38,7 @@ class BaseState():
             states[self.__superId].exit(stop, states, exits)
 
     def matchTransition(self, e, states, guards):
-        trs = self.__trans.get(e, [[-1, -1, -1]])
+        trs = self.__trans.get(e, [])
         for tr in trs:
             if guards.get(tr[0], HHGuardTrue)():
                 return tr
