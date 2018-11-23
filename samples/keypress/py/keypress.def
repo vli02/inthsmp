@@ -70,7 +70,30 @@ s211: d -> s21	{ print("s211-d-s21;", end = " ") }
 
 %%
 
-__hh_states[0].on('c', __hh_states, __hh_entries, __hh_exits, __hh_guards, __hh_actions, __hh_inits)
-__hh_states[0].on('g', __hh_states, __hh_entries, __hh_exits, __hh_guards, __hh_actions, __hh_inits)
+class keypress():
+    __name = "keypress"
+    __hh_states = _hh_states
+    def __init__(self, cb):
+        global __hh_states
+        self.__cb = cb
+        self.__curst = -1
+
+    def getName(self):
+        return self.__name
+
+    def start(self):
+        pass
+
+    def run(self):
+        pass
+
+myKeypress = keypress(None)
+
+print("%s" % myKeypress.getName())
+
+_hh_states[0].on('c', _hh_states, _hh_entries, _hh_exits, _hh_guards, _hh_actions, _hh_inits)
+print("")
+_hh_states[0].on('g', _hh_states, _hh_entries, _hh_exits, _hh_guards, _hh_actions, _hh_inits)
+print("")
 
 # test python epilog
