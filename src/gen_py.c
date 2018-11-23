@@ -37,6 +37,7 @@ extern event_t *wildc_ev;
 extern state_t *start_st;
 extern link_t state_link;
 extern link_t dest_link;
+extern link_t init_link;
 extern text_t     *prolog_code;
 extern text_t     *epilog_code;
 extern text_t     *start_code;
@@ -221,8 +222,10 @@ print_guard_action()
     int comma;
     dest_t  *dt;
 
-    dt = dest_link.head;
-    while (dt) {
+    int i;
+    state_t *st;
+
+    for (dt = dest_link.head; dt; dt = dt->link) {
         if (dt->guard) {
             write2file("def __hh_guard_%d():\n", dt->id);
             write2file("    return%s\n\n", dt->guard->txt);
@@ -233,13 +236,19 @@ print_guard_action()
             print_stmt("    ", dt->action);
             write2file("\n");
         }
-        dt = dt->link;
+    }
+
+    for (dt = init_link.head; dt; dt = dt->link) {
+        if (dt->action) {
+            write2file("def __hh_init_%d():\n", dt->id);
+            print_stmt("    ", dt->action);
+            write2file("\n");
+        }
     }
 
     comma = 0;
     write2file("__hh_guards = {\n");
-    dt = dest_link.head;
-    while (dt) {
+    for (dt = dest_link.head; dt; dt = dt->link) {
         if (dt->guard) {
             if (comma) {
                 write2file(",\n");
@@ -247,14 +256,12 @@ print_guard_action()
             write2file("    %d: __hh_guard_%d", dt->id, dt->id);
             comma = 1;
         }
-        dt = dt->link;
     }
     write2file("\n}\n\n");
 
-   comma = 0;
+    comma = 0;
     write2file("__hh_actions = {\n");
-    dt = dest_link.head;
-    while (dt) {
+    for (dt = dest_link.head; dt; dt = dt->link) {
         if (dt->action) {
             if (comma) {
                 write2file(",\n");
@@ -262,7 +269,21 @@ print_guard_action()
             write2file("    %d: __hh_action_%d", dt->id, dt->id);
             comma = 1;
         }
-        dt = dt->link;
+    }
+    write2file("\n}\n\n");
+
+    comma = 0;
+    write2file("__hh_inits = {\n");
+    for (i = max_leaf_sid + 1; i <= max_sid; i ++) {
+        st = find_state_by_sid(i);
+        for (dt = st->init; dt; dt = dt->sibling) {
+            if (!dt->action) continue;
+            if (comma) {
+                write2file(",\n");
+            }
+            comma = 1;
+            write2file("    %d: __hh_init_%d", dt->st->id, dt->id);
+       }
     }
     write2file("\n}\n\n");
 }
@@ -284,8 +305,7 @@ print_state_classes()
 
     write2file("from inthsm import BaseState\n\n");
 
-    st = state_link.head;
-    while (st) {
+    for (st = state_link.head; st; st = st->link) {
         write2file("class __hh_state_%s(BaseState):\n", st->name->txt);
         write2file("    def __init__(self):\n");
         write2file("        super().__init__(\"%s\", %d, %d,\n",
@@ -296,8 +316,7 @@ print_state_classes()
 
         comma1 = 0;
         memset(flags, 0, (max_eid + 1) * sizeof(flags[0]));
-        trs = st->trans;
-        while (trs) {
+        for (trs = st->trans; trs; trs = trs->sibling) {
             evl = &trs->evl;
             for (i = 0; i < evl->count; i ++) {
                 ev = evl->pa[i];
@@ -314,49 +333,39 @@ print_state_classes()
 
                 comma2 = 0;
                 /* start from the beginning of all trans in order to include wildchar trans */
-                tr = st->trans;
-                while (tr) {
-                    if (tr == trs ||
-                        test_ev_in_list(ev, &tr->evl)) {
-                        dst = tr->dst;
-                        while (dst) {
-                            if (comma2) {
-                                write2file(", ");
-                            }
-                            comma2 = 1;
-                            if (dst->st) {
-                                if (dst->type == DST_TYPE_LFROM) {
-                                    cross = st;
-                                } else if (dst->type == DST_TYPE_LTO) {
-                                    cross = dst->st;
-                                } else {
-                                    cross = search_cross_state(st, dst->st);
-                                }
-                                write2file("[%d, %d, %d]", dst->id,
-                                                           dst->st->id,
-                                                           cross ? cross->id : -1);
+                for (tr = st->trans; tr; tr = tr->sibling) {
+                    if (tr != trs && !test_ev_in_list(ev, &tr->evl)) continue;
+                    for (dst = tr->dst; dst; dst = dst->sibling) {
+                        if (comma2) {
+                            write2file(", ");
+                        }
+                        comma2 = 1;
+                        if (dst->st) {
+                            if (dst->type == DST_TYPE_LFROM) {
+                                cross = st;
+                            } else if (dst->type == DST_TYPE_LTO) {
+                                cross = dst->st;
                             } else {
-                                write2file("[%d, %d, %d]",
-                                           dst->id,
-                                           (dst->type == DST_TYPE_INT) ? -1 : -2,
-                                           -1);
+                                cross = search_cross_state(st, dst->st);
                             }
-                            dst = dst->sibling;
+                            write2file("[%d, %d, %d]", dst->id,
+                                                       dst->st->id,
+                                                       cross ? cross->id : -1);
+                        } else {
+                            write2file("[%d, %d, %d]", dst->id,
+                                                      (dst->type == DST_TYPE_INT) ? -1 : -2,
+                                                       -1);
                         }
                     }
-                    tr = tr->sibling;
                 }
 
                 write2file(" ]");
             }
-            trs = trs->sibling;
         }
 
         /* the wildchar event tran go here */
         wc = comma2 = 0;
-        for (trs = st->trans;
-             trs;
-             trs = trs->sibling) {
+        for (trs = st->trans; trs; trs = trs->sibling) {
             if (!test_ev_in_list(wildc_ev, &trs->evl)) continue;
             if (!wc) {
                 if (comma1) {
@@ -366,9 +375,7 @@ print_state_classes()
                 wc = 1;
             }
 
-            for (dst = trs->dst;
-                 dst;
-                 dst = dst->sibling) {
+            for (dst = trs->dst; dst; dst = dst->sibling) {
                 if (comma2) {
                     write2file(", ");
                 }
@@ -394,25 +401,37 @@ print_state_classes()
         if (wc) {
             write2file(" ]");
         }
+        write2file(" }");
 
-        write2file(" }\n");
-        write2file("                        )\n");
+        comma2 = 0;
+        if (st->id > max_leaf_sid) {
+            write2file(",\n                         [");
+            if (st->init) {
+                for (dst = st->init; dst; dst = dst->sibling) {
+                    if (comma2) {
+                        write2file(", ");
+                    }
+                    comma2 = 1;
+                    write2file("%d", dst->st->id);
+                }
+            } else {
+                write2file("%d", st->sub->id);
+            }
+            write2file("]");
+        }
+        write2file("\n                        )\n");
         write2file("\n");
-
-        st = st->link;
     }
 
     free(flags);
 
     write2file("__hh_states = [");
-    i = 0;
-    while (i <= max_sid) {
+    for (i = 0; i <= max_sid; i ++) {
         st = find_state_by_sid(i);
         if (i > 0) {
             write2file(",");
         }
         write2file("\n    __hh_state_%s()", st->name->txt);
-        i ++;
     }
     write2file("\n]\n\n");
 }

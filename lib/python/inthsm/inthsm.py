@@ -17,12 +17,12 @@ def __HHActionNoop():
     pass
 
 class BaseState():
-    def __init__(self, name, sid, superId, trans={}, initTrans=None):
+    def __init__(self, name, sid, superId, trans, inits=None):
         self.__name = name
         self.__id = sid
         self.__superId = superId
         self.__trans = trans
-        self.__initTrans = initTrans
+        self.__inits = inits
 
     def __str__(self):
         return self.__name
@@ -47,12 +47,12 @@ class BaseState():
         return None
 
     def init(self):
-        if self.__initTrans is None:
+        if self.__inits is None:
             return self.__id
-        for tr in self.__initTrans:
-            __hh_inits.get(tr[0], __HHActionNoop)()
-            __hh_states[tr[1]].enter(self.__id)
-            return __hh_states[tr[1]].init()
+        for st in self.__inits:
+            __hh_inits.get(st, __HHActionNoop)()
+            __hh_states[st].enter(self.__id)
+            return __hh_states[st].init()
 
     def on(self, e):
         tr = self.matchTransition(e)
