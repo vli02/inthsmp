@@ -436,6 +436,18 @@ print_state_classes()
     write2file("\n]\n\n");
 }
 
+static void
+print_start_func()
+{
+    write2file("def __hh_start():\n");
+    if (start_code) {
+        print_stmt("    ", start_code);
+    } else {
+        write2file("    pass\n");
+    }
+    write2file("\n");
+}
+
 #if 0
 static void
 print_state_list()
@@ -607,17 +619,6 @@ print_init_func()
     }
     write2file("\n}\n\n");
 }
-
-static void
-print_start_func()
-{
-    write2file("def __hh_start():\n");
-    if (start_code) {
-        print_stmt("    ", start_code);
-    } else {
-        write2file("    pass\n\n");
-    }
-}
 #endif
 
 int append_ext_py(char *str, int len)
@@ -647,6 +648,7 @@ gen_code_py()
     print_entry_exit();
     print_guard_action();
     print_state_classes();
+    print_start_func();
 #if 0
     print_state_list();
     print_super_states();
@@ -655,7 +657,6 @@ gen_code_py()
 
     print_support_lib();
     print_init_func();
-    print_start_func();
 #endif
 
     print_epilog();
