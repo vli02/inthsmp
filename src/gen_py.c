@@ -271,7 +271,16 @@ static void
 print_state_classes()
 {
     int i;
-    state_t *st;
+    state_t *st, *cross;
+    trans_t *trs, *tr;
+    plist_t *evl;
+    event_t *ev;
+    dest_t  *dst;
+
+    int comma1, comma2, wc;
+
+    int *flags = malloc((max_eid + 1) * sizeof(flags[0]));
+    assert(flags);
 
     write2file("from inthsm import BaseState\n\n");
 
@@ -279,14 +288,121 @@ print_state_classes()
     while (st) {
         write2file("class __hh_state_%s(BaseState):\n", st->name->txt);
         write2file("    def __init__(self):\n");
-        write2file("        super().__init__(\"%s\", %d, %d)\n",
+        write2file("        super().__init__(\"%s\", %d, %d,\n",
                                              st->name->txt,
                                              st->id,
                                              st->super ? st->super->id : -1);
+        write2file("                         { ");
+
+        comma1 = 0;
+        memset(flags, 0, (max_eid + 1) * sizeof(flags[0]));
+        trs = st->trans;
+        while (trs) {
+            evl = &trs->evl;
+            for (i = 0; i < evl->count; i ++) {
+                ev = evl->pa[i];
+
+                if (flags[ev->id] != 0 ||
+                    ev == wildc_ev) continue;
+                flags[ev->id] = 1;
+
+                if (comma1) {
+                    write2file(",\n                           ");
+                }
+                comma1 = 1;
+                write2file("\"%s\": [ ", ev->name->txt);
+
+                comma2 = 0;
+                /* start from the beginning of all trans in order to include wildchar trans */
+                tr = st->trans;
+                while (tr) {
+                    if (tr == trs ||
+                        test_ev_in_list(ev, &tr->evl)) {
+                        dst = tr->dst;
+                        while (dst) {
+                            if (comma2) {
+                                write2file(", ");
+                            }
+                            comma2 = 1;
+                            if (dst->st) {
+                                if (dst->type == DST_TYPE_LFROM) {
+                                    cross = st;
+                                } else if (dst->type == DST_TYPE_LTO) {
+                                    cross = dst->st;
+                                } else {
+                                    cross = search_cross_state(st, dst->st);
+                                }
+                                write2file("[%d, %d, %d]", dst->id,
+                                                           dst->st->id,
+                                                           cross ? cross->id : -1);
+                            } else {
+                                write2file("[%d, %d, %d]",
+                                           dst->id,
+                                           (dst->type == DST_TYPE_INT) ? -1 : -2,
+                                           -1);
+                            }
+                            dst = dst->sibling;
+                        }
+                    }
+                    tr = tr->sibling;
+                }
+
+                write2file(" ]");
+            }
+            trs = trs->sibling;
+        }
+
+        /* the wildchar event tran go here */
+        wc = comma2 = 0;
+        for (trs = st->trans;
+             trs;
+             trs = trs->sibling) {
+            if (!test_ev_in_list(wildc_ev, &trs->evl)) continue;
+            if (!wc) {
+                if (comma1) {
+                    write2file(",\n                           ");
+                }
+                write2file("\"%s\": [ ", wildc_ev->name->txt);
+                wc = 1;
+            }
+
+            for (dst = trs->dst;
+                 dst;
+                 dst = dst->sibling) {
+                if (comma2) {
+                    write2file(", ");
+                }
+                comma2 = 1;
+                if (dst->st) {
+                    if (dst->type == DST_TYPE_LFROM) {
+                        cross = st;
+                    } else if (dst->type == DST_TYPE_LTO) {
+                        cross = dst->st;
+                    } else {
+                        cross = search_cross_state(st, dst->st);
+                    }
+                    write2file("[%d, %d, %d]", dst->id,
+                                               dst->st->id,
+                                               cross ? cross->id : -1);
+                } else {
+                    write2file("[%d, %d, %d]", dst->id,
+                                              (dst->type == DST_TYPE_INT) ? -1 : -2,
+                                               -1);
+                }
+            }
+        }
+        if (wc) {
+            write2file(" ]");
+        }
+
+        write2file(" }\n");
+        write2file("                        )\n");
         write2file("\n");
 
         st = st->link;
     }
+
+    free(flags);
 
     write2file("__hh_states = [");
     i = 0;
