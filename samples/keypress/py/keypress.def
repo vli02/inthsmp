@@ -1,0 +1,75 @@
+%{
+from inthsm import HHAccept, HHAbort
+
+test = 0
+%}
+
+%event	a b c d e f g h
+	x X
+
+%state	s0
+	  -> { print("s0-ENTRY;", end = " ") }
+	  <- { print("s0-EXIT;", end = " ") }
+	s1
+	  -> { print("s1-ENTRY;", end = " ") }
+	  <- { print("s1-EXIT;", end = " ") }
+	s11
+	  -> { print("s11-ENTRY;", end = " ") }
+	  <- { print("s11-EXIT;", end = " ") }
+	s2
+	  -> { print("s2-ENTRY;", end = " ") }
+	  <- { print("s2-EXIT;", end = " ") }
+	s21
+	  -> { print("s21-ENTRY;", end = " ") }
+	  <- { print("s21-EXIT;", end = " ") }
+	s211
+	  -> { print("s211-ENTRY;", end = " ") }
+	  <- { print("s211-EXIT;", end = " ") }
+
+%hiera	s0 (s1 (s11),
+	    s2 (s21 (s211)))
+
+%start	s0	{ print("start-INIT;", end = " ") }
+
+%%
+
+s0: . -> s1	{ print("s0-INIT;", end = " ") }
+    e -> s211	{ print("s0-e-s211;", end = " ") }
+    x --	{ HHAccept() }
+    X --	{ HHAbort() }
+;
+
+s1: . -> s11	{ print("s1-INIT;", end = " ") }
+    a -> s1	{ print("s1-a-s1;", end = " ") }
+    b -> s11	{ print("s1-b-s11;", end = " ") }
+    c -> s2	{ print("s1-c-s2;", end = " ") }
+    d -> s0	{ print("s1-d-s0;", end = " ") }
+    f -> s211	{ print("s1-f-s211;", end = " ") }
+;
+
+s11: g -> s211	{ print("s11-g-s211;", end = " ") }
+     h ?(test) -- { test = 0
+		    print("s11-h-;", end = " ") }
+;
+
+s2: . -> s21	{ print("s2-INIT;", end = " ") }
+    c -> s1	{ print("s2-c-s1;", end = " ") }
+    f -> s11	{ print("s2-f-s11;", end = " ") }
+;
+
+s21: . -> s211	{ print("s21-INIT;", end = " ") }
+     b -> s211	{ print("s21-b-s211;", end = " ") }
+     h ?(test == 0) -> s21 { test = 1
+      			     print("s21-h-s21;", end = " ") }
+;
+
+s211: d -> s21	{ print("s211-d-s21;", end = " ") }
+      g -> s0	{ print("s211-g-s0;", end = " ") }
+;
+
+
+%%
+
+__hh_states[3].on('c', __hh_states, __hh_entries, __hh_exits, __hh_guards, __hh_actions, __hh_inits)
+
+# test python epilog
