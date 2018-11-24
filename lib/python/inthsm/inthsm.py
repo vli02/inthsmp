@@ -10,10 +10,10 @@ def HHAccept():
 def HHAbort():
     raise _HSMAbortException
 
-def HHGuardTrue():
+def _HHGuardTrue():
     return True
 
-def HHActionNoop():
+def _HHActionNoop():
     pass
 
 class BaseState():
@@ -27,41 +27,47 @@ class BaseState():
     def __str__(self):
         return self.__name
 
-    def enter(self, start, states, entries):
-        if start != self.__superId:
-            states[self.__superId].enter(start, states, entries)
-        entries.get(self.__id, HHActionNoop)()
+    def _entry(self):
+        pass
 
-    def exit(self, stop, states, exits):
-        exits.get(self.__id, HHActionNoop)()
+    def _exit(self):
+        pass
+
+    def enter(self, start, states):
+        if start != self.__superId:
+            states[self.__superId].enter(start, states)
+        self._entry()
+
+    def exit(self, stop, states):
+        self._exit()
         if stop != self.__superId:
-            states[self.__superId].exit(stop, states, exits)
+            states[self.__superId].exit(stop, states)
+
+    def init(self, states, inits):
+        if self.__subst is None:
+            return self.__id
+        for st in self.__subst:
+            inits.get(st, _HHActionNoop)()
+            states[st].enter(self.__id, states)
+            return states[st].init(states, inits)
 
     def matchTransition(self, e, states, guards):
         trs = self.__trans.get(e, [])
         for tr in trs:
-            if guards.get(tr[0], HHGuardTrue)():
+            if guards.get(tr[0], _HHGuardTrue)():
                 return tr
         if self.__superId != -1:
             return states[self.__superId].matchTransition(e, states, guards)
         return None
 
-    def init(self, states, inits, entries):
-        if self.__subst is None:
-            return self.__id
-        for st in self.__subst:
-            inits.get(st, HHActionNoop)()
-            states[st].enter(self.__id, states, entries)
-            return states[st].init(states, inits, entries)
-
-    def on(self, e, states, entries, exits, guards, actions, inits):
+    def on(self, e, states, guards, actions, inits):
         tr = self.matchTransition(e, states, guards)
         if tr is None:
             return -1
-        self.exit(tr[2], states, exits)
-        actions.get(tr[0], HHActionNoop)()
-        states[tr[1]].enter(tr[2], states, entries)
-        return states[tr[1]].init(states, inits, entries)
+        self.exit(tr[2], states)
+        actions.get(tr[0], _HHActionNoop)()
+        states[tr[1]].enter(tr[2], states)
+        return states[tr[1]].init(states, inits)
 
 class BaseHSM():
     def __init__(self, cb):
@@ -74,27 +80,23 @@ class BaseHSM():
     def __eventLoop(self):
         while True:
             e = self.__cb()
-            self.__st = self._hh_states[self.__st].on(e, self._hh_states,
-                                                         self._hh_entries,
-                                                         self._hh_exits,
-                                                         self._hh_guards,
-                                                         self._hh_actions,
-                                                         self._hh_inits)
+            self.__st = self._states[self.__st].on(e, self._states,
+                                                      self._guards,
+                                                      self._actions,
+                                                      self._inits)
 
     def getState(self):
         if self.__st == -1:
             return ""
-        return str(self._hh_states[self.__st])
+        return str(self._states[self.__st])
 
     def start(self):
         self.__st = -1
         try:
-            self._hh_start()
-            self._hh_states[self._start_state].enter(-1, self._hh_states,
-                                                         self._hh_entries)
-            self.__st = self._hh_states[self._start_state].init(self._hh_states,
-                                                                self._hh_inits,
-                                                                self._hh_entries)
+            self._start()
+            self._states[self._start_state].enter(-1, self._states)
+            self.__st = self._states[self._start_state].init(self._states,
+                                                             self._inits)
             self.__eventLoop()
         except _HSMAcceptException:
             ec = 0

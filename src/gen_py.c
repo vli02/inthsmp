@@ -141,89 +141,9 @@ print_epilog()
 }
 
 static void
-print_event_list()
-{
-    int i;
-    event_t *ev;
-
-    write2file("_hh_events = [");
-    i = 0;
-    while (i <= max_eid) {
-        ev = find_event_by_eid(i);
-        if (ev != wildc_ev) {
-            if (i > 0) {
-                write2file(",");
-            }
-            write2file("\n    \"%s\"", ev->name->txt);
-        }
-        i ++;
-    }
-    write2file("\n]\n\n");
-}
-
-static void
-print_entry_exit()
-{
-    int i;
-    int comma;
-    state_t *st;
-
-    st = state_link.head;
-    while (st) {
-        if (st->entry) {
-            write2file("def _hh_entry_%s():\n", st->name->txt);
-            print_stmt("    ", st->entry);
-            write2file("\n");
-        }
-        if (st->exit) {
-            write2file("def _hh_exit_%s():\n", st->name->txt);
-            print_stmt("    ", st->exit);
-            write2file("\n");
-        }
-        st = st->link;
-    }
-
-    comma = 0;
-    write2file("_hh_entries = {\n");
-    for (i = 0; i <= max_sid; i++) {
-        st = find_state_by_sid(i);
-        assert(st);
-        if (st->entry) {
-            if (comma) {
-                write2file(",\n");
-            }
-            write2file("    %d: _hh_entry_%s", st->id, st->name->txt);
-            comma = 1;
-        }
-        st = st->link;
-    }
-    write2file("\n}\n\n");
-
-    comma = 0;
-    write2file("_hh_exits = {\n");
-    for (i = 0; i <= max_sid; i++) {
-        st = find_state_by_sid(i);
-        assert(st);
-        if (st->exit) {
-            if (comma) {
-                write2file(",\n");
-            }
-            write2file("    %d: _hh_exit_%s", st->id, st->name->txt);
-            comma = 1;
-        }
-        st = st->link;
-    }
-    write2file("\n}\n\n");
-}
-
-static void
 print_guard_action()
 {
-    int comma;
     dest_t  *dt;
-
-    int i;
-    state_t *st;
 
     for (dt = dest_link.head; dt; dt = dt->link) {
         if (dt->guard) {
@@ -245,47 +165,6 @@ print_guard_action()
             write2file("\n");
         }
     }
-
-    comma = 0;
-    write2file("_hh_guards = {\n");
-    for (dt = dest_link.head; dt; dt = dt->link) {
-        if (dt->guard) {
-            if (comma) {
-                write2file(",\n");
-            }
-            write2file("    %d: _hh_guard_%d", dt->id, dt->id);
-            comma = 1;
-        }
-    }
-    write2file("\n}\n\n");
-
-    comma = 0;
-    write2file("_hh_actions = {\n");
-    for (dt = dest_link.head; dt; dt = dt->link) {
-        if (dt->action) {
-            if (comma) {
-                write2file(",\n");
-            }
-            write2file("    %d: _hh_action_%d", dt->id, dt->id);
-            comma = 1;
-        }
-    }
-    write2file("\n}\n\n");
-
-    comma = 0;
-    write2file("_hh_inits = {\n");
-    for (i = max_leaf_sid + 1; i <= max_sid; i ++) {
-        st = find_state_by_sid(i);
-        for (dt = st->init; dt; dt = dt->sibling) {
-            if (!dt->action) continue;
-            if (comma) {
-                write2file(",\n");
-            }
-            comma = 1;
-            write2file("    %d: _hh_init_%d", dt->st->id, dt->id);
-       }
-    }
-    write2file("\n}\n\n");
 }
 
 static void
@@ -312,6 +191,7 @@ print_state_classes()
                                              st->name->txt,
                                              st->id,
                                              st->super ? st->super->id : -1);
+        /* transition table */
         write2file("                         { ");
 
         comma1 = 0;
@@ -403,6 +283,7 @@ print_state_classes()
         }
         write2file(" }");
 
+        /* initial sub states */
         comma2 = 0;
         if (st->id > max_leaf_sid) {
             write2file(",\n                         [");
@@ -421,205 +302,113 @@ print_state_classes()
         }
         write2file("\n                        )\n");
         write2file("\n");
+
+        /* entry/exit function */
+        if (st->entry) {
+            write2file("    def _entry(self):\n");
+            print_stmt("        ", st->entry);
+            write2file("\n");
+        }
+        if (st->exit) {
+            write2file("    def _exit(self):\n");
+            print_stmt("        ", st->exit);
+            write2file("\n");
+        }
     }
 
     free(flags);
+}
 
-    write2file("_hh_states = [");
+static void
+print_main_class()
+{
+    int i;
+    event_t *ev;
+    state_t *st;
+    dest_t  *dt;
+    int comma;
+
+    write2file("from inthsm import BaseHSM\n\n");
+    write2file("class keypress(BaseHSM):\n");
+    write2file("    _name = \"keypress\"\n");
+    write2file("    _start_state = %d\n\n", start_st->id);
+
+    write2file("    _events = [");
+    i = 0;
+    while (i <= max_eid) {
+        ev = find_event_by_eid(i);
+        if (ev != wildc_ev) {
+            if (i > 0) {
+                write2file(",");
+            }
+            write2file("\n        \"%s\"", ev->name->txt);
+        }
+        i ++;
+    }
+    write2file(" ]\n\n");
+
+    write2file("    _states = [");
     for (i = 0; i <= max_sid; i ++) {
         st = find_state_by_sid(i);
         if (i > 0) {
             write2file(",");
         }
-        write2file("\n    _hh_state_%s()", st->name->txt);
+        write2file("\n        _hh_state_%s()", st->name->txt);
     }
-    write2file("\n]\n\n");
-}
-
-static void
-print_start_func()
-{
-    write2file("def _hh_start():\n");
-    if (start_code) {
-        print_stmt("    ", start_code);
-    } else {
-        write2file("    pass\n");
-    }
-    write2file("\n");
-}
-
-#if 0
-static void
-print_state_list()
-{
-    int i;
-    state_t *st;
-
-    write2file("_hh_states = [");
-    i = 0;
-    while (i <= max_sid) {
-        st = find_state_by_sid(i);
-        if (i > 0) {
-            write2file(",");
-        }
-        write2file("\n    \"%s\"", st->name->txt);
-        i ++;
-    }
-    write2file("\n]\n\n");
-}
-
-static void
-print_super_states()
-{
-    int i, sid;
-    state_t *st;
-
-    write2file("_hh_super = [");
-    i = 0;
-    while (i <= max_sid) {
-        st = find_state_by_sid(i);
-        assert(st);
-        sid = (st->super) ? st->super->id : -1;
-        if (i != 0) {
-            write2file(",");
-        }
-        if ((i % 8) == 0) {
-            write2file("\n");
-        }
-        write2file("%4d", sid);
-        i ++;
-    }
-    write2file("\n]\n\n");
-}
-
-static void
-print_sub_states()
-{
-    int i, j, sid;
-    state_t *st;
-
-    write2file("_hh_sub = [");
-    i = max_leaf_sid + 1;
-    j = 0;
-    while (i <= max_sid) {
-        st = find_state_by_sid(i);
-        assert(st && st->sub);
-        if (st->init) {
-            sid = st->init->st->id;
-        } else {
-            sid = st->sub->id;
-        }
-        if (j != 0) {
-            write2file(",");
-        }
-        if ((j % 8) == 0) {
-            write2file("\n");
-        }
-        write2file("%4d", sid);
-        i ++;
-        j ++;
-    }
-    write2file("\n]\n\n");
-}
-
-static int
-print_parent_sid(state_t *st)
-{
-    int n = 0;
-    if (st->super) {
-        n = print_parent_sid(st->super);
-    }
-    if (n != 0) {
-        write2file(",");
-        if ((n % 8) == 0) {
-            write2file("\n ");
-        }
-    }
-    write2file("%4d", st->id);
-    return ++n;
-}
-
-static void
-print_entry_path()
-{
-    int i;
-    state_t *st;
-
-    write2file("_hh_entry_path = [");
-    i = 0;
-    while (i <= max_leaf_sid) {
-        st = find_state_by_sid(i);
-        if (i != 0) {
-            write2file(",");
-        }
-        write2file("\n[");
-        print_parent_sid(st);
-        write2file("]");
-        i ++;
-    }
-    write2file("\n]\n\n");
-}
-
-static void
-print_support_lib()
-{
-    const char *p;
-
-    /* Accept exception */
-    p = "class _hh_accept_exception(Exception):\n    pass\n\n";
-    write2file(p);
-
-    /* Abort exception */
-    p = "class _hh_abort_exception(Exception):\n    pass\n\n";
-    write2file(p);
-
-    /* no-op function */
-    p = "def _hh_func_noop():\n    pass\n\n";
-    write2file(p);
-
-    /* accept */
-    p = "def _hh_accept():\n    raise _hh_accept_exception\n\n";
-    write2file(p);
-
-    /* abort */
-    p = "def _hh_abort():\n    raise _hh_abort_exception\n\n";
-    write2file(p);
-}
-
-static void
-print_init_func()
-{
-    int i;
-    int comma;
-    state_t *st;
-
-    st = state_link.head;
-    while (st) {
-        if (st->init &&
-            st->init->action) {
-            write2file("def _hh_init_%d():\n", st->init->id);
-            print_stmt("    ", st->init->action);
-        }
-        st = st->link;
-    }
+    write2file(" ]\n\n");
 
     comma = 0;
-    write2file("_hh_inits = {\n");
-    for (i = max_leaf_sid + 1; i <= max_sid; i++) {
-        st = find_state_by_sid(i);
-        assert(st);
-        if (st->init &&
-            st->init->action) {
+    write2file("    _guards = {\n");
+    for (dt = dest_link.head; dt; dt = dt->link) {
+        if (dt->guard) {
             if (comma) {
                 write2file(",\n");
             }
-            write2file("    %d: _hh_init_%d", st->id, st->init->id);
+            write2file("        %d: _hh_guard_%d", dt->id, dt->id);
             comma = 1;
         }
     }
-    write2file("\n}\n\n");
+    write2file(" }\n\n");
+
+    comma = 0;
+    write2file("    _actions = {\n");
+    for (dt = dest_link.head; dt; dt = dt->link) {
+        if (dt->action) {
+            if (comma) {
+                write2file(",\n");
+            }
+            write2file("        %d: _hh_action_%d", dt->id, dt->id);
+            comma = 1;
+        }
+    }
+    write2file(" }\n\n");
+
+    comma = 0;
+    write2file("    _inits = {\n");
+    for (i = max_leaf_sid + 1; i <= max_sid; i ++) {
+        st = find_state_by_sid(i);
+        for (dt = st->init; dt; dt = dt->sibling) {
+            if (!dt->action) continue;
+            if (comma) {
+                write2file(",\n");
+            }
+            comma = 1;
+            write2file("        %d: _hh_init_%d", dt->st->id, dt->id);
+       }
+    }
+    write2file(" }\n\n");
+
+    write2file("    def _start(self):\n");
+    if (start_code) {
+        print_stmt("        ", start_code);
+    } else {
+        write2file("        pass\n");
+    }
+    write2file("\n");
+
+    write2file("    def __init__(self, cb):\n");
+    write2file("        super().__init__(cb)\n\n");
 }
-#endif
 
 int append_ext_py(char *str, int len)
 {
@@ -644,20 +433,9 @@ gen_code_py()
     print_prod_info();
     print_prolog();
 
-    print_event_list();
-    print_entry_exit();
     print_guard_action();
     print_state_classes();
-    print_start_func();
-#if 0
-    print_state_list();
-    print_super_states();
-    print_sub_states();
-    print_entry_path();
-
-    print_support_lib();
-    print_init_func();
-#endif
+    print_main_class();
 
     print_epilog();
 }
