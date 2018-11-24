@@ -42,14 +42,55 @@ extern text_t     *prolog_code;
 extern text_t     *epilog_code;
 extern text_t     *start_code;
 
-extern FILE *output_file_ptr;
-extern FILE *output_file;
+extern const char *output_file_name;
+extern const FILE *output_file_ptr;
+extern const FILE *output_file;
 
 extern int max_eid;
 extern int max_sid;
 extern int max_leaf_sid;
 extern int max_super_sid;
 
+
+static const char *
+make_hsm_name()
+{
+    unsigned int l;
+    char *name;
+    const char *start, *end;
+
+    l = strlen(output_file_name);
+    if (l < 8) l = 8; /* Default */
+    name = malloc(l * sizeof(name[0]));
+    assert(name);
+
+    start = output_file_name;
+    end = strchr(start, '.');
+    assert(end); /* it must end with .py */
+
+    while (start < end &&
+           (*start < 'A' || *start > 'z' ||
+           (*start > 'z' && *start < 'a'))) {
+        start ++;
+    }
+
+    l = end - start;
+    if (l != 0) {
+        strncpy(name, start, l);
+        name[l] = 0;
+        if (name[0] >= 'a') name[0] = 'A' + name[0] - 'a';
+    } else {
+        strcpy(name, "MyHSM");
+    }
+
+    return name;
+}
+
+static void
+free_hsm_name(const char *name)
+{
+    free((void *)name);
+}
 
 static void
 print_prod_info()
@@ -320,7 +361,7 @@ print_state_classes()
 }
 
 static void
-print_main_class()
+print_main_class(const char *hsm_name)
 {
     int i;
     event_t *ev;
@@ -329,8 +370,8 @@ print_main_class()
     int comma;
 
     write2file("from inthsm import BaseHSM\n\n");
-    write2file("class keypress(BaseHSM):\n");
-    write2file("    _name = \"keypress\"\n");
+    write2file("class %s(BaseHSM):\n", hsm_name);
+    write2file("    _name = \"%s\"\n", hsm_name);
     write2file("    _start_state = %d\n\n", start_st->id);
 
     write2file("    _events = [");
@@ -429,13 +470,19 @@ int append_ext_py(char *str, int len)
 void
 gen_code_py()
 {
+    const char *name;
+
     output_file = output_file_ptr;
     print_prod_info();
     print_prolog();
 
+    name = make_hsm_name();
+
     print_guard_action();
     print_state_classes();
-    print_main_class();
+    print_main_class(name);
+
+    free_hsm_name(name);
 
     print_epilog();
 }
