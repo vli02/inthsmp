@@ -223,17 +223,17 @@ print_state_classes()
     int *flags = malloc((max_eid + 1) * sizeof(flags[0]));
     assert(flags);
 
-    write2file("from inthsm import BaseState\n\n");
+    write2file("    from inthsm import BaseState\n\n");
 
     for (st = state_link.head; st; st = st->link) {
-        write2file("class _hh_state_%s(BaseState):\n", st->name->txt);
-        write2file("    def __init__(self):\n");
-        write2file("        super().__init__(\"%s\", %d, %d,\n",
-                                             st->name->txt,
-                                             st->id,
-                                             st->super ? st->super->id : -1);
+        write2file("    class _state_%s(BaseState):\n", st->name->txt);
+        write2file("        def __init__(self):\n");
+        write2file("            super().__init__(\"%s\", %d, %d,\n",
+                                                 st->name->txt,
+                                                 st->id,
+                                                 st->super ? st->super->id : -1);
         /* transition table */
-        write2file("                         { ");
+        write2file("                             { ");
 
         comma1 = 0;
         memset(flags, 0, (max_eid + 1) * sizeof(flags[0]));
@@ -247,7 +247,7 @@ print_state_classes()
                 flags[ev->id] = 1;
 
                 if (comma1) {
-                    write2file(",\n                           ");
+                    write2file(",\n                               ");
                 }
                 comma1 = 1;
                 write2file("\"%s\": [ ", ev->name->txt);
@@ -290,7 +290,7 @@ print_state_classes()
             if (!test_ev_in_list(wildc_ev, &trs->evl)) continue;
             if (!wc) {
                 if (comma1) {
-                    write2file(",\n                           ");
+                    write2file(",\n                               ");
                 }
                 write2file("\"%s\": [ ", wildc_ev->name->txt);
                 wc = 1;
@@ -327,7 +327,7 @@ print_state_classes()
         /* initial sub states */
         comma2 = 0;
         if (st->id > max_leaf_sid) {
-            write2file(",\n                         [");
+            write2file(",\n                             [");
             if (st->init) {
                 for (dst = st->init; dst; dst = dst->sibling) {
                     if (comma2) {
@@ -341,18 +341,18 @@ print_state_classes()
             }
             write2file("]");
         }
-        write2file("\n                        )\n");
+        write2file(")\n");
         write2file("\n");
 
         /* entry/exit function */
         if (st->entry) {
-            write2file("    def _entry(self):\n");
-            print_stmt("        ", st->entry);
+            write2file("        def _entry(self):\n");
+            print_stmt("            ", st->entry);
             write2file("\n");
         }
         if (st->exit) {
-            write2file("    def _exit(self):\n");
-            print_stmt("        ", st->exit);
+            write2file("        def _exit(self):\n");
+            print_stmt("            ", st->exit);
             write2file("\n");
         }
     }
@@ -371,8 +371,7 @@ print_main_class(const char *hsm_name)
 
     write2file("from inthsm import BaseHSM\n\n");
     write2file("class %s(BaseHSM):\n", hsm_name);
-    write2file("    _name = \"%s\"\n", hsm_name);
-    write2file("    _start_state = %d\n\n", start_st->id);
+    write2file("    _name = \"%s\"\n\n", hsm_name);
 
     write2file("    _events = [");
     i = 0;
@@ -388,13 +387,15 @@ print_main_class(const char *hsm_name)
     }
     write2file(" ]\n\n");
 
+    print_state_classes();
+
     write2file("    _states = [");
     for (i = 0; i <= max_sid; i ++) {
         st = find_state_by_sid(i);
         if (i > 0) {
             write2file(",");
         }
-        write2file("\n        _hh_state_%s()", st->name->txt);
+        write2file("\n        _state_%s()", st->name->txt);
     }
     write2file(" ]\n\n");
 
@@ -447,6 +448,8 @@ print_main_class(const char *hsm_name)
     }
     write2file("\n");
 
+    write2file("    _start_state = %d\n\n", start_st->id);
+
     write2file("    def __init__(self, cb):\n");
     write2file("        super().__init__(cb)\n\n");
 }
@@ -479,7 +482,6 @@ gen_code_py()
     name = make_hsm_name();
 
     print_guard_action();
-    print_state_classes();
     print_main_class(name);
 
     free_hsm_name(name);

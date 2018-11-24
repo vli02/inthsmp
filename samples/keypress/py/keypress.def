@@ -82,7 +82,7 @@ s211: d -> s21	{ myPrint("s211-d-s21; ") }
 
 %%
 
-myKeypress = keypress(getch)
+myKeypress = Keypress(getch)
 
 print(myKeypress)
 
