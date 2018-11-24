@@ -1,6 +1,18 @@
 %{
 from inthsm import HHAccept, HHAbort
 
+import sys
+
+def getch():
+    print("\nEnter [a - h], or [x|X] to exit/abort...\n> ", end="", flush=True);
+    while True:
+       ch = sys.stdin.read(1)
+       if ch != '\n':
+           return ch
+
+def myPrint(s):
+    print(s, end="", flush=True)
+
 test = 0
 %}
 
@@ -8,92 +20,78 @@ test = 0
 	x X
 
 %state	s0
-	  -> { print("s0-ENTRY;", end = " ") }
-	  <- { print("s0-EXIT;", end = " ") }
+	  -> { myPrint("s0-ENTRY; ") }
+	  <- { myPrint("s0-EXIT; ") }
 	s1
-	  -> { print("s1-ENTRY;", end = " ") }
-	  <- { print("s1-EXIT;", end = " ") }
+	  -> { myPrint("s1-ENTRY; ") }
+	  <- { myPrint("s1-EXIT; ") }
 	s11
-	  -> { print("s11-ENTRY;", end = " ") }
-	  <- { print("s11-EXIT;", end = " ") }
+	  -> { myPrint("s11-ENTRY; ") }
+	  <- { myPrint("s11-EXIT; ") }
 	s2
-	  -> { print("s2-ENTRY;", end = " ") }
-	  <- { print("s2-EXIT;", end = " ") }
+	  -> { myPrint("s2-ENTRY; ") }
+	  <- { myPrint("s2-EXIT; ") }
 	s21
-	  -> { print("s21-ENTRY;", end = " ") }
-	  <- { print("s21-EXIT;", end = " ") }
+	  -> { myPrint("s21-ENTRY; ") }
+	  <- { myPrint("s21-EXIT; ") }
 	s211
-	  -> { print("s211-ENTRY;", end = " ") }
-	  <- { print("s211-EXIT;", end = " ") }
+	  -> { myPrint("s211-ENTRY; ") }
+	  <- { myPrint("s211-EXIT; ") }
 
 %hiera	s0 (s1 (s11),
 	    s2 (s21 (s211)))
 
-%start	s0	{ print("start-INIT;", end = " ") }
+%start	s0	{ myPrint("start-INIT; ") }
 
 %%
 
-s0: . -> s1	{ print("s0-INIT;", end = " ") }
-    e -> s211	{ print("s0-e-s211;", end = " ") }
+s0: . -> s1	{ myPrint("s0-INIT; ") }
+    e -> s211	{ myPrint("s0-e-s211; ") }
     x --	{ HHAccept() }
     X --	{ HHAbort() }
 ;
 
-s1: . -> s11	{ print("s1-INIT;", end = " ") }
-    a -> s1	{ print("s1-a-s1;", end = " ") }
-    b -> s11	{ print("s1-b-s11;", end = " ") }
-    c -> s2	{ print("s1-c-s2;", end = " ") }
-    d -> s0	{ print("s1-d-s0;", end = " ") }
-    f -> s211	{ print("s1-f-s211;", end = " ") }
+s1: . -> s11	{ myPrint("s1-INIT; ") }
+    a -> s1	{ myPrint("s1-a-s1; ") }
+    b -> s11	{ myPrint("s1-b-s11; ") }
+    c -> s2	{ myPrint("s1-c-s2; ") }
+    d -> s0	{ myPrint("s1-d-s0; ") }
+    f -> s211	{ myPrint("s1-f-s211; ") }
 ;
 
-s11: g -> s211	{ print("s11-g-s211;", end = " ") }
+s11: g -> s211	{ myPrint("s11-g-s211; ") }
      h ?(test) -- { test = 0
-		    print("s11-h-;", end = " ") }
+		    myPrint("s11-h-; ") }
 ;
 
-s2: . -> s21	{ print("s2-INIT;", end = " ") }
-    c -> s1	{ print("s2-c-s1;", end = " ") }
-    f -> s11	{ print("s2-f-s11;", end = " ") }
+s2: . -> s21	{ myPrint("s2-INIT; ") }
+    c -> s1	{ myPrint("s2-c-s1; ") }
+    f -> s11	{ myPrint("s2-f-s11; ") }
 ;
 
-s21: . -> s211	{ print("s21-INIT;", end = " ") }
-     b -> s211	{ print("s21-b-s211;", end = " ") }
+s21: . -> s211	{ myPrint("s21-INIT; ") }
+     b -> s211	{ myPrint("s21-b-s211; ") }
      h ?(test == 0) -> s21 { test = 1
-      			     print("s21-h-s21;", end = " ") }
+                             myPrint("s21-h-s21; ") }
 ;
 
-s211: d -> s21	{ print("s211-d-s21;", end = " ") }
-      g -> s0	{ print("s211-g-s0;", end = " ") }
+s211: d -> s21	{ myPrint("s211-d-s21; ") }
+      g -> s0	{ myPrint("s211-g-s0; ") }
 ;
 
 
 %%
 
-class keypress():
-    __name = "keypress"
-    __hh_states = _hh_states
-    def __init__(self, cb):
-        global __hh_states
-        self.__cb = cb
-        self.__curst = -1
+myKeypress = keypress(getch)
 
-    def getName(self):
-        return self.__name
+print(myKeypress)
 
-    def start(self):
-        pass
+print ("%s" % myKeypress.getState())
 
-    def run(self):
-        pass
+ec = myKeypress.run()
 
-myKeypress = keypress(None)
+print ("%s" % myKeypress.getState())
 
-print("%s" % myKeypress.getName())
-
-_hh_states[0].on('c', _hh_states, _hh_entries, _hh_exits, _hh_guards, _hh_actions, _hh_inits)
-print("")
-_hh_states[0].on('g', _hh_states, _hh_entries, _hh_exits, _hh_guards, _hh_actions, _hh_inits)
-print("")
+sys.exit(ec)
 
 # test python epilog

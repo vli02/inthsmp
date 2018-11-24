@@ -1,14 +1,14 @@
-class HSMAcceptException(Exception):
+class _HSMAcceptException(Exception):
     pass
 
-class HSMAbortException(Exception):
+class _HSMAbortException(Exception):
     pass
 
 def HHAccept():
-    raise HSMAcceptException
+    raise _HSMAcceptException
 
 def HHAbort():
-    raise HSMAbortException
+    raise _HSMAbortException
 
 def HHGuardTrue():
     return True
@@ -62,3 +62,52 @@ class BaseState():
         actions.get(tr[0], HHActionNoop)()
         states[tr[1]].enter(tr[2], states, entries)
         return states[tr[1]].init(states, inits, entries)
+
+class BaseHSM():
+    def __init__(self, cb):
+        self.__st = -1
+        self.__cb = cb
+
+    def __str__(self):
+        return self._name
+
+    def __eventLoop(self):
+        while True:
+            e = self.__cb()
+            self.__st = self._hh_states[self.__st].on(e, self._hh_states,
+                                                         self._hh_entries,
+                                                         self._hh_exits,
+                                                         self._hh_guards,
+                                                         self._hh_actions,
+                                                         self._hh_inits)
+
+    def getState(self):
+        if self.__st == -1:
+            return ""
+        return str(self._hh_states[self.__st])
+
+    def start(self):
+        self.__st = -1
+        try:
+            self._hh_start()
+            self._hh_states[self._start_state].enter(-1, self._hh_states,
+                                                         self._hh_entries)
+            self.__st = self._hh_states[self._start_state].init(self._hh_states,
+                                                                self._hh_inits,
+                                                                self._hh_entries)
+            self.__eventLoop()
+        except _HSMAcceptException:
+            ec = 0
+        except _HSMAbortException:
+            ec = -1
+        except:
+            raise
+
+        return ec
+
+    def run(self):
+        if self.__st == -1:
+            ec = self.start()
+        else:
+            ec = self.__eventLoop()
+        return ec
