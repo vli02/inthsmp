@@ -182,42 +182,16 @@ print_epilog()
 }
 
 static void
-print_guard_action()
-{
-    dest_t  *dt;
-
-    for (dt = dest_link.head; dt; dt = dt->link) {
-        if (dt->guard) {
-            write2file("def _hh_guard_%d():\n", dt->id);
-            write2file("    return%s\n\n", dt->guard->txt);
-        }
-
-        if (dt->action) {
-            write2file("def _hh_action_%d():\n", dt->id);
-            print_stmt("    ", dt->action);
-            write2file("\n");
-        }
-    }
-
-    for (dt = init_link.head; dt; dt = dt->link) {
-        if (dt->action) {
-            write2file("def _hh_init_%d():\n", dt->id);
-            print_stmt("    ", dt->action);
-            write2file("\n");
-        }
-    }
-}
-
-static void
 print_state_classes()
 {
-    int i;
+    int i, id;
     state_t *st, *cross;
     trans_t *trs, *tr;
     plist_t *evl;
     event_t *ev;
     dest_t  *dst;
 
+    int has_guard, has_action, has_init;
     int comma1, comma2, wc;
 
     int *flags = malloc((max_eid + 1) * sizeof(flags[0]));
@@ -227,6 +201,91 @@ print_state_classes()
 
     for (st = state_link.head; st; st = st->link) {
         write2file("    class _state_%s(BaseState):\n", st->name->txt);
+
+        /* guard/action pairs and initial transitions */
+        has_guard = has_action = 0;
+        id = 0;
+        for (trs = st->trans; trs; trs = trs->sibling) {
+            for (dst = trs->dst; dst; dst = dst->sibling) {
+                if (dst->guard || dst->action) {
+                    dst->id = id ++;             // update id per class
+                }
+                if (dst->guard) {
+                    has_guard = 1;
+                    write2file("        def _guard_%d():\n", dst->id);
+                    write2file("            return%s\n\n", dst->guard->txt);
+                }
+
+                if (dst->action) {
+                    has_action = 1;
+                    write2file("        def _action_%d():\n", dst->id);
+                    print_stmt("            ", dst->action);
+                    write2file("\n");
+                }
+            }
+        }
+
+        has_init = 0;
+        id = 0;
+        for (dst = st->init; dst; dst = dst->sibling) {
+            if (dst->action) {
+                has_init = 1;
+                dst->id = id ++;             // update id per class
+                write2file("        def _init_%d():\n", dst->id);
+                print_stmt("            ", dst->action);
+                write2file("\n");
+            }
+        }
+
+        if (has_guard) {
+            comma2 = 0;
+            write2file("        _guards = {\n");
+            for (trs = st->trans; trs; trs = trs->sibling) {
+                for (dst = trs->dst; dst; dst = dst->sibling) {
+                    if (dst->guard) {
+                        if (comma2) {
+                            write2file(",\n");
+                        }
+                        write2file("            %d: _guard_%d", dst->id, dst->id);
+                        comma2 = 1;
+                    }
+                }
+            }
+            write2file(" }\n\n");
+        }
+
+        if (has_action) {
+            comma2 = 0;
+            write2file("        _actions = {\n");
+            for (trs = st->trans; trs; trs = trs->sibling) {
+                for (dst = trs->dst; dst; dst = dst->sibling) {
+                    if (dst->action) {
+                        if (comma2) {
+                            write2file(",\n");
+                        }
+                        write2file("            %d: _action_%d", dst->id, dst->id);
+                        comma2 = 1;
+                    }
+                }
+            }
+            write2file(" }\n\n");
+        }
+
+        if (has_init) {
+            comma2 = 0;
+            write2file("        _inits = {\n");
+            for (dst = st->init; dst; dst = dst->sibling) {
+                if (dst->action) {
+                    if (comma2) {
+                        write2file(",\n");
+                    }
+                    write2file("            %d: _init_%d", dst->st->id, dst->id);
+                    comma2 = 1;
+                }
+            }
+            write2file(" }\n\n");
+        }
+
         write2file("        def __init__(self):\n");
         write2file("            super().__init__(\"%s\", %d, %d,\n",
                                                  st->name->txt,
@@ -366,8 +425,6 @@ print_main_class(const char *hsm_name)
     int i;
     event_t *ev;
     state_t *st;
-    dest_t  *dt;
-    int comma;
 
     write2file("from inthsm import BaseHSM\n\n");
     write2file("class %s(BaseHSM):\n", hsm_name);
@@ -398,47 +455,6 @@ print_main_class(const char *hsm_name)
         write2file("\n        _state_%s()", st->name->txt);
     }
     write2file(" ]\n\n");
-
-    comma = 0;
-    write2file("    _guards = {\n");
-    for (dt = dest_link.head; dt; dt = dt->link) {
-        if (dt->guard) {
-            if (comma) {
-                write2file(",\n");
-            }
-            write2file("        %d: _hh_guard_%d", dt->id, dt->id);
-            comma = 1;
-        }
-    }
-    write2file(" }\n\n");
-
-    comma = 0;
-    write2file("    _actions = {\n");
-    for (dt = dest_link.head; dt; dt = dt->link) {
-        if (dt->action) {
-            if (comma) {
-                write2file(",\n");
-            }
-            write2file("        %d: _hh_action_%d", dt->id, dt->id);
-            comma = 1;
-        }
-    }
-    write2file(" }\n\n");
-
-    comma = 0;
-    write2file("    _inits = {\n");
-    for (i = max_leaf_sid + 1; i <= max_sid; i ++) {
-        st = find_state_by_sid(i);
-        for (dt = st->init; dt; dt = dt->sibling) {
-            if (!dt->action) continue;
-            if (comma) {
-                write2file(",\n");
-            }
-            comma = 1;
-            write2file("        %d: _hh_init_%d", dt->st->id, dt->id);
-       }
-    }
-    write2file(" }\n\n");
 
     write2file("    def _start(self):\n");
     if (start_code) {
@@ -481,7 +497,6 @@ gen_code_py()
 
     name = make_hsm_name();
 
-    print_guard_action();
     print_main_class(name);
 
     free_hsm_name(name);
