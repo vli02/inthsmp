@@ -23,13 +23,6 @@
 #include <assert.h>
 #include "gen.h"
 
-#define WRITE_PREFIX(PREFIX) \
-do {\
-    if (PREFIX) {\
-        write2file("%s", PREFIX);\
-    }\
-} while (0);
-
 extern const int  prod_ver[3];
 extern const char *prod_name;
 
@@ -287,7 +280,7 @@ print_state_classes()
         }
 
         write2file("        def __init__(self):\n");
-        write2file("            super().__init__(\"%s\", %d, %d,\n",
+        write2file("            super().__init__('%s', %d, %d,\n",
                                                  st->name->txt,
                                                  st->id,
                                                  st->super ? st->super->id : -1);
@@ -309,7 +302,7 @@ print_state_classes()
                     write2file(",\n                               ");
                 }
                 comma1 = 1;
-                write2file("\"%s\": [ ", ev->name->txt);
+                write2file("'%s': [ ", ev->name->txt);
 
                 comma2 = 0;
                 /* start from the beginning of all trans in order to include wildchar trans */
@@ -351,7 +344,7 @@ print_state_classes()
                 if (comma1) {
                     write2file(",\n                               ");
                 }
-                write2file("\"%s\": [ ", wildc_ev->name->txt);
+                write2file("'%s': [ ", wildc_ev->name->txt);
                 wc = 1;
             }
 
@@ -437,7 +430,7 @@ print_main_class(const char *hsm_name)
             if (i > 0) {
                 write2file(",");
             }
-            write2file("\n        \"%s\"", ev->name->txt);
+            write2file("\n        '%s'", ev->name->txt);
         }
         i ++;
     }
@@ -466,7 +459,7 @@ print_main_class(const char *hsm_name)
     write2file("    _start_state = %d\n\n", start_st->id);
 
     write2file("    def __init__(self, cb, pd=None):\n");
-    write2file("        super().__init__(\"%s\", cb, pd)\n\n", hsm_name);
+    write2file("        super().__init__('%s', cb, pd)\n\n", hsm_name);
 }
 
 int append_ext_py(char *str, int len)

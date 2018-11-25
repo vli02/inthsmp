@@ -89,7 +89,7 @@ class BaseHSM():
 
     def getState(self):
         if self.__st == -1:
-            return ""
+            return ''
         return str(self._states[self.__st])
 
     def run(self, reset=False):
