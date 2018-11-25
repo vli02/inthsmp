@@ -13,18 +13,9 @@ def getch():
 def myPrint(s):
     print(s, end="", flush=True)
 
-test = 0
+class MyData:
+    test = 0
 
-def checkTest():
-    global test
-    return test != 0
-
-def toggleTest():
-    global test
-    if test:
-        test = 0
-    else:
-        test = 1
 %}
 
 %event	a b c d e f g h
@@ -71,8 +62,8 @@ s1: . -> s11	{ myPrint("s1-INIT; ") }
 ;
 
 s11: g -> s211	{ myPrint("s11-g-s211; ") }
-     h ?(checkTest()) -- { toggleTest()
-                           myPrint("s11-h-; ") }
+     h ?(pd.test == 1) -- { pd.test = 0
+                            myPrint("s11-h-; ") }
 ;
 
 s2: . -> s21	{ myPrint("s2-INIT; ") }
@@ -82,8 +73,8 @@ s2: . -> s21	{ myPrint("s2-INIT; ") }
 
 s21: . -> s211	{ myPrint("s21-INIT; ") }
      b -> s211	{ myPrint("s21-b-s211; ") }
-     h ?(checkTest() == False) -> s21 { toggleTest()
-                                        myPrint("s21-h-s21; ") }
+     h ?(pd.test == 0) -> s21 { pd.test = 1
+                                myPrint("s21-h-s21; ") }
 ;
 
 s211: d -> s21	{ myPrint("s211-d-s21; ") }
@@ -93,7 +84,7 @@ s211: d -> s21	{ myPrint("s211-d-s21; ") }
 
 %%
 
-myKeypress = Keypress(getch)
+myKeypress = Keypress(getch, MyData())
 print(myKeypress)
 print ("%s" % myKeypress.getState())
 
