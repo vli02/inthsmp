@@ -83,13 +83,16 @@ s211: d -> s21	{ myPrint("s211-d-s21; ") }
 %%
 
 myKeypress = Keypress(getch)
-
 print(myKeypress)
-
 print ("%s" % myKeypress.getState())
 
 ec = myKeypress.run()
+print ("%s" % myKeypress.getState())
 
+ec = myKeypress.run()
+print ("%s" % myKeypress.getState())
+
+ec = myKeypress.run(True)
 print ("%s" % myKeypress.getState())
 
 sys.exit(ec)

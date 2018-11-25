@@ -81,25 +81,27 @@ class BaseHSM():
     def __str__(self):
         return self._name
 
-    def __eventLoop(self):
-        while True:
-            e = self.__cb()
-            st = self._states[self.__st].on(e, self._states)
-            if st != -1:
-                self.__st = st
-
     def getState(self):
         if self.__st == -1:
             return ""
         return str(self._states[self.__st])
 
-    def start(self):
-        self.__st = -1
+    def run(self, reset=False):
+        if reset:
+            self.__st = -1
         try:
-            self._start()
-            self._states[self._start_state].enter(-1, self._states)
-            self.__st = self._states[self._start_state].init(self._states)
-            self.__eventLoop()
+            if self.__st == -1:
+                self._start()
+                self._states[self._start_state].enter(-1, self._states)
+                self.__st = self._states[self._start_state].init(self._states)
+
+            while True:
+                e = self.__cb()
+                st = self._states[self.__st].on(e, self._states)
+                if st != -1:
+                    self.__st = st
+                else:
+                    pass
         except _HSMAcceptException:
             ec = 0
         except _HSMAbortException:
@@ -107,11 +109,4 @@ class BaseHSM():
         except:
             raise
 
-        return ec
-
-    def run(self):
-        if self.__st == -1:
-            ec = self.start()
-        else:
-            ec = self.__eventLoop()
         return ec
