@@ -67,11 +67,15 @@ class BaseState():
     def on(self, e, states, pd):
         tr, st = self.matchTransition(e, states, pd)
         if tr is None:
-            return -1
-        self.exit(tr[2], states, pd)
-        states[st]._actions.get(tr[0], self._actionNoop)(pd)
-        states[tr[1]].enter(tr[2], states, pd)
-        return states[tr[1]].init(states, pd)
+            return -3
+        if tr[1] >= 0:
+            self.exit(tr[2], states, pd)
+        if tr[1] >= -1:
+            states[st]._actions.get(tr[0], self._actionNoop)(pd)
+        if tr[1] >= 0:
+            states[tr[1]].enter(tr[2], states, pd)
+            return states[tr[1]].init(states, pd)
+        return tr[1]
 
 class BaseHSM():
     def __init__(self, cb, pd):
@@ -99,9 +103,13 @@ class BaseHSM():
             while True:
                 e = self.__cb()
                 st = self._states[self.__st].on(e, self._states, self.__pd)
-                if st != -1:
+                if st >= 0:
                     self.__st = st
-                else:
+                elif st == -1:     # local transition
+                    pass
+                elif st == -2:     # event deferral
+                    pass
+                else:              # unhandled event
                     pass
         except _HSMAcceptException:
             ec = 0
