@@ -78,13 +78,14 @@ class BaseState():
         return tr[1]
 
 class BaseHSM():
-    def __init__(self, cb, pd):
-        self.__st = -1
-        self.__cb = cb
-        self.__pd = pd
+    def __init__(self, name, cb, pd):
+        self.__name = name
+        self.__cb   = cb
+        self.__pd   = pd
+        self.__st   = -1
 
     def __str__(self):
-        return self._name
+        return self.__name
 
     def getState(self):
         if self.__st == -1:

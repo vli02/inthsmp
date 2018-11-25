@@ -428,7 +428,6 @@ print_main_class(const char *hsm_name)
 
     write2file("from inthsm import BaseHSM\n\n");
     write2file("class %s(BaseHSM):\n", hsm_name);
-    write2file("    _name = \"%s\"\n\n", hsm_name);
 
     write2file("    _events = [");
     i = 0;
@@ -467,7 +466,7 @@ print_main_class(const char *hsm_name)
     write2file("    _start_state = %d\n\n", start_st->id);
 
     write2file("    def __init__(self, cb, pd=None):\n");
-    write2file("        super().__init__(cb, pd)\n\n");
+    write2file("        super().__init__(\"%s\", cb, pd)\n\n", hsm_name);
 }
 
 int append_ext_py(char *str, int len)
