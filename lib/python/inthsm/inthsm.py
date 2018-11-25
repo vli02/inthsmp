@@ -102,7 +102,7 @@ class BaseHSM():
                 self.__st = self._states[self._start_state].init(self._states, self.__pd)
 
             while True:
-                e = self.__cb()
+                e = self.__cb(self.__pd)
                 st = self._states[self.__st].on(e, self._states, self.__pd)
                 if st >= 0:
                     self.__st = st

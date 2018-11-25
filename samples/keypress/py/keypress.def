@@ -3,7 +3,7 @@ from inthsm import HHAccept, HHAbort
 
 import sys
 
-def getch():
+def getch(pd):
     print('\nEnter [a - h], or [x|X] to exit/abort...\n> ', end='', flush=True);
     while True:
        ch = sys.stdin.read(1)
