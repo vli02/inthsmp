@@ -21,6 +21,18 @@
 
 #include <stdio.h>
 
+#include "gen.h"
+
+extern int g_opt_l;
+
+#define IS_C_COMMENT(C)  ((C) == '/'  && g_opt_l == OUTPUT_LANG_C)
+#define IS_C_CHAR(C)     ((C) == '\'' && g_opt_l == OUTPUT_LANG_C)
+
+#define IS_PY_COMMENT(C) ((C) == '#'  && g_opt_l == OUTPUT_LANG_PY)
+
+#define IS_STRING(C)     ((C) == '\"' || ((C) == '\'' && g_opt_l == OUTPUT_LANG_PY))
+
+
 typedef struct yyinput_s {
     FILE *fp;
     const char *filename;

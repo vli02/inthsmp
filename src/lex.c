@@ -262,7 +262,7 @@ parse_comment_2(int block)
 }
 
 static int
-parse_comment()
+parse_c_comment()
 {
     int tok = 0;
 
@@ -278,6 +278,12 @@ parse_comment()
     }
 
     return tok;
+}
+
+static int
+parse_py_comment()
+{
+    return parse_comment_2(0);
 }
 
 static int
@@ -312,7 +318,7 @@ parse_char()
 }
 
 static int
-parse_string()
+parse_string(char match)
 {
     int tok = 0;
     int c;
@@ -326,7 +332,7 @@ parse_string()
             skip = 0;             /* reset skip */
         } else if (c == '\\') {
             skip = 1;             /* set skip */
-        } else if (c == '\"') {
+        } else if (c == match) {
             tok = TOK_STRING;
             break;
         }
@@ -336,7 +342,7 @@ parse_string()
     /* not a valid string */
     if (tok == 0 &&
         c != EC) {
-        print_invalid_ch('\"');
+        print_invalid_ch(match);
     }
 
     return tok;
@@ -354,12 +360,14 @@ parse_c_stmt_2(int predef)
         c = readchar();
         if (c == '\n') {
             tok = c;
-        } else if (c == '/') {
-            tok = parse_comment();
-        } else if (c == '\'') {
+        } else if (IS_C_COMMENT(c)) {
+            tok = parse_c_comment();
+        } else if (IS_PY_COMMENT(c)) {
+            tok = parse_py_comment();
+        } else if (IS_C_CHAR(c)) {
             tok = parse_char();
-        } else if (c == '\"') {
-            tok = parse_string();
+        } else if (IS_STRING(c)) {
+            tok = parse_string(c);
         } else if (c == '{') {
             nesting ++;
             tok = c;
@@ -415,17 +423,19 @@ parse_c_expr()
         c = readchar();
         if (c == '\n') {
             tok = c;
-        } else if (c == '/') {
-            tok = parse_comment();
+        } else if (IS_C_COMMENT(c)) {
+            tok = parse_c_comment();
+        } else if (IS_PY_COMMENT(c)) {
+            tok = parse_py_comment();
         } else if (isspace(c)) {
             tok = c;
         } else if (!p && c != '(') {
             print_invalid_ch(c);
             tok = 0;
-        } else if (c == '\'') {
+        } else if (IS_C_CHAR(c)) {
             tok = parse_char();
-        } else if (c == '\"') {
-            tok = parse_string();
+        } else if (IS_STRING(c)) {
+            tok = parse_string(c);
         } else if (c == '(') {
             if (!p) {
                 p = c;
@@ -605,18 +615,23 @@ again:
         goto again;
     } else if (isspace(c)) {
         goto again;
-    } else if (c == '/') {
-        token = parse_comment();
+    } else if (IS_C_COMMENT(c)) {
+        token = parse_c_comment();
         if (token == TOK_L_COMMENT ||
             token == TOK_B_COMMENT) {
             goto again;
         }
+    } else if (IS_PY_COMMENT(c)) {
+        token = parse_py_comment();
+        if (token == TOK_L_COMMENT) {
+            goto again;
+        }
     } else if (c == '%') {
         token = parse_predef();
-    } else if (c == '\'') {
+    } else if (IS_C_CHAR(c)) {
         token = parse_char();
-    } else if (c == '\"') {
-        token = parse_string();
+    } else if (IS_STRING(c)) {
+        token = parse_string(c);
     } else if (c == '{') {
         token = parse_c_stmt();
     } else if (c == '?') {
