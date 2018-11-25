@@ -212,13 +212,13 @@ print_state_classes()
                 }
                 if (dst->guard) {
                     has_guard = 1;
-                    write2file("        def _guard_%d():\n", dst->id);
+                    write2file("        def _guard_%d(pd):\n", dst->id);
                     write2file("            return%s\n\n", dst->guard->txt);
                 }
 
                 if (dst->action) {
                     has_action = 1;
-                    write2file("        def _action_%d():\n", dst->id);
+                    write2file("        def _action_%d(pd):\n", dst->id);
                     print_stmt("            ", dst->action);
                     write2file("\n");
                 }
@@ -231,7 +231,7 @@ print_state_classes()
             if (dst->action) {
                 has_init = 1;
                 dst->id = id ++;             // update id per class
-                write2file("        def _init_%d():\n", dst->id);
+                write2file("        def _init_%d(pd):\n", dst->id);
                 print_stmt("            ", dst->action);
                 write2file("\n");
             }
@@ -405,12 +405,12 @@ print_state_classes()
 
         /* entry/exit function */
         if (st->entry) {
-            write2file("        def _entry(self):\n");
+            write2file("        def _entry(self, pd):\n");
             print_stmt("            ", st->entry);
             write2file("\n");
         }
         if (st->exit) {
-            write2file("        def _exit(self):\n");
+            write2file("        def _exit(self, pd):\n");
             print_stmt("            ", st->exit);
             write2file("\n");
         }
@@ -456,7 +456,7 @@ print_main_class(const char *hsm_name)
     }
     write2file(" ]\n\n");
 
-    write2file("    def _start(self):\n");
+    write2file("    def _start(self, pd):\n");
     if (start_code) {
         print_stmt("        ", start_code);
     } else {
@@ -466,8 +466,8 @@ print_main_class(const char *hsm_name)
 
     write2file("    _start_state = %d\n\n", start_st->id);
 
-    write2file("    def __init__(self, cb):\n");
-    write2file("        super().__init__(cb)\n\n");
+    write2file("    def __init__(self, cb, pd=None):\n");
+    write2file("        super().__init__(cb, pd)\n\n");
 }
 
 int append_ext_py(char *str, int len)

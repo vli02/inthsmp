@@ -15,10 +15,10 @@ class BaseState():
     _actions = { }
     _inits   = { }
 
-    def _guardTrue(self):
+    def _guardTrue(self, pd):
         return True
 
-    def _actionNoop(self):
+    def _actionNoop(self, pd):
         pass
 
     def __init__(self, name, sid, superId, trans, subst=None):
@@ -37,46 +37,47 @@ class BaseState():
     def _exit(self):
         pass
 
-    def enter(self, start, states):
+    def enter(self, start, states, pd):
         if start != self.__superId:
-            states[self.__superId].enter(start, states)
-        self._entry()
+            states[self.__superId].enter(start, states, pd)
+        self._entry(pd)
 
-    def exit(self, stop, states):
-        self._exit()
+    def exit(self, stop, states, pd):
+        self._exit(pd)
         if stop != self.__superId:
-            states[self.__superId].exit(stop, states)
+            states[self.__superId].exit(stop, states, pd)
 
-    def init(self, states):
+    def init(self, states, pd):
         if self.__subst is None:
             return self.__id
         for st in self.__subst:
-            self._inits.get(st, self._actionNoop)()
-            states[st].enter(self.__id, states)
-            return states[st].init(states)
+            self._inits.get(st, self._actionNoop)(pd)
+            states[st].enter(self.__id, states, pd)
+            return states[st].init(states, pd)
 
-    def matchTransition(self, e, states):
+    def matchTransition(self, e, states, pd):
         trs = self.__trans.get(e, [])
         for tr in trs:
-            if self._guards.get(tr[0], self._guardTrue)():
+            if self._guards.get(tr[0], self._guardTrue)(pd):
                 return tr, self.__id
         if self.__superId != -1:
-            return states[self.__superId].matchTransition(e, states)
+            return states[self.__superId].matchTransition(e, states, pd)
         return None, -1
 
-    def on(self, e, states):
-        tr, st = self.matchTransition(e, states)
+    def on(self, e, states, pd):
+        tr, st = self.matchTransition(e, states, pd)
         if tr is None:
             return -1
-        self.exit(tr[2], states)
-        states[st]._actions.get(tr[0], self._actionNoop)()
-        states[tr[1]].enter(tr[2], states)
-        return states[tr[1]].init(states)
+        self.exit(tr[2], states, pd)
+        states[st]._actions.get(tr[0], self._actionNoop)(pd)
+        states[tr[1]].enter(tr[2], states, pd)
+        return states[tr[1]].init(states, pd)
 
 class BaseHSM():
-    def __init__(self, cb):
+    def __init__(self, cb, pd):
         self.__st = -1
         self.__cb = cb
+        self.__pd = pd
 
     def __str__(self):
         return self._name
@@ -91,13 +92,13 @@ class BaseHSM():
             self.__st = -1
         try:
             if self.__st == -1:
-                self._start()
-                self._states[self._start_state].enter(-1, self._states)
-                self.__st = self._states[self._start_state].init(self._states)
+                self._start(self.__pd)
+                self._states[self._start_state].enter(-1, self._states, self.__pd)
+                self.__st = self._states[self._start_state].init(self._states, self.__pd)
 
             while True:
                 e = self.__cb()
-                st = self._states[self.__st].on(e, self._states)
+                st = self._states[self.__st].on(e, self._states, self.__pd)
                 if st != -1:
                     self.__st = st
                 else:
