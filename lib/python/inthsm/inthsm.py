@@ -122,10 +122,10 @@ class BaseState():
     def __str__(self):
         return self.__name
 
-    def _entry(self):
+    def _entry(self, pd):
         pass
 
-    def _exit(self):
+    def _exit(self, pd):
         pass
 
     def enter(self, start, states, pd):

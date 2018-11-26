@@ -10,10 +10,6 @@ def getch(pd):
        if ch != '\n':
            return ch
 
-# this is a test
-
-# %}
-
 def myPrint(s):
     print(s, end='', flush=True)
 
