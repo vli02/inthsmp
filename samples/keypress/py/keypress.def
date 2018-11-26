@@ -10,9 +10,6 @@ def getch(pd):
        if ch != '\n':
            return ch
 
-def myPrint(s):
-    print(s, end='', flush=True)
-
 class MyData:
     test = 0
 
@@ -22,86 +19,70 @@ class MyData:
 	x X
 
 %state	s0
-	  -> { myPrint('s0-ENTRY; ') }
-	  <- { myPrint('s0-EXIT; ') }
+	  -> { print('s0-ENTRY;') }
+	  <- { print('s0-EXIT;') }
 	s1
-	  -> { myPrint('s1-ENTRY; ') }
-	  <- { myPrint('s1-EXIT; ') }
+	  -> { print('s1-ENTRY;') }
+	  <- { print('s1-EXIT;') }
 	s11
-	  -> { myPrint('s11-ENTRY; ') }
-	  <- { myPrint('s11-EXIT; ') }
+	  -> { print('s11-ENTRY;') }
+	  <- { print('s11-EXIT;') }
 	s2
-	  -> { myPrint('s2-ENTRY; ') }
-	  <- { myPrint('s2-EXIT; ') }
+	  -> { print('s2-ENTRY;') }
+	  <- { print('s2-EXIT;') }
 	s21
-	  -> { myPrint('s21-ENTRY; ') }
-	  <- { myPrint('s21-EXIT; ') }
+	  -> { print('s21-ENTRY;') }
+	  <- { print('s21-EXIT;') }
 	s211
-	  -> { myPrint('s211-ENTRY; ') }
-	  <- { myPrint('s211-EXIT; ') }
+	  -> { print('s211-ENTRY;') }
+	  <- { print('s211-EXIT;') }
 
 %hiera	s0 (s1 (s11),
 	    s2 (s21 (s211)))
 
-%start	s0	{ myPrint('start-INIT; ') }
+%start	s0	{ print('Keypress-START;') }
 
 %%
 
-s0: . -> s1	{ myPrint('s0-INIT; ') }
-    e -> s211	{ myPrint('s0-e-s211; ') }
+s0: . -> s1	{ print('s0-INIT;') }
+    e -> s211	{ print('s0-e-s211;') }
     x --	{ HHAccept() }
     X --	{ HHAbort() }
 ;
 
-s1: . -> s11	{ myPrint('s1-INIT; ') }
-    a -> s1	{ myPrint('s1-a-s1; ') }
-    b -> s11	{ myPrint('s1-b-s11; ') }
-    c -> s2	{ myPrint('s1-c-s2; ') }
-    d -> s0	{ myPrint('s1-d-s0; ') }
-    f -> s211	{ myPrint('s1-f-s211; ') }
+s1: . -> s11	{ print('s1-INIT;') }
+    a -> s1	{ print('s1-a-s1;') }
+    b -> s11	{ print('s1-b-s11;') }
+    c -> s2	{ print('s1-c-s2;') }
+    d -> s0	{ print('s1-d-s0;') }
+    f -> s211	{ print('s1-f-s211;') }
 ;
 
-s11: g -> s211	{ myPrint('s11-g-s211; ') }
+s11: g -> s211	{ print('s11-g-s211;') }
      h ?(pd.test == 1) -- { pd.test = 0
-                            myPrint('s11-h-; ') }
+                            print('s11-h-;') }
 ;
 
-s2: . -> s21	{ myPrint('s2-INIT; ') }
-    c -> s1	{ myPrint('s2-c-s1; ') }
-    f -> s11	{ myPrint('s2-f-s11; ') }
+s2: . -> s21	{ print('s2-INIT;') }
+    c -> s1	{ print('s2-c-s1;') }
+    f -> s11	{ print('s2-f-s11;') }
 ;
 
-s21: . -> s211	{ myPrint('s21-INIT; ') }
-     b -> s211	{ myPrint('s21-b-s211; ') }
+s21: . -> s211	{ print('s21-INIT;') }
+     b -> s211	{ print('s21-b-s211;') }
      h ?(pd.test == 0) -> s21 { pd.test = 1
-                                myPrint('s21-h-s21; ') }
+                                print('s21-h-s21;') }
 ;
 
-s211: d -> s21	{ myPrint('s211-d-s21; ') }
-      g -> s0	{ myPrint('s211-g-s0; ') }
+s211: d -> s21	{ print('s211-d-s21;') }
+      g -> s0	{ print('s211-g-s0;') }
 ;
 
 
 %%
 
 myKeypress = Keypress(getch, MyData())
-print(myKeypress)
-print ('%s' % myKeypress.getState())
-
-myKeypress.enableTrace()
 ec = myKeypress.run()
-print ('%s' % myKeypress.getState())
-
-myKeypress.enableTrace()
-
-ec = myKeypress.run()
-print ('%s' % myKeypress.getState())
-
-myKeypress.disableTrace()
-
-ec = myKeypress.run(True)
-print ('%s' % myKeypress.getState())
-
 sys.exit(ec)
 
-# test python epilog
+# all done!
