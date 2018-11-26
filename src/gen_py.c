@@ -190,7 +190,7 @@ print_state_classes()
     int *flags = malloc((max_eid + 1) * sizeof(flags[0]));
     assert(flags);
 
-    write2file("    from inthsm import BaseState\n\n");
+    write2file("    from inthsm import BaseState, Trace\n\n");
 
     for (st = state_link.head; st; st = st->link) {
         write2file("    class _state_%s(BaseState):\n", st->name->txt);
@@ -279,7 +279,7 @@ print_state_classes()
             write2file(" }\n\n");
         }
 
-        write2file("        def __init__(self):\n");
+        write2file("        def __init__(self, trace=None):\n");
         write2file("            super().__init__('%s', %d, %d,\n",
                                                  st->name->txt,
                                                  st->id,
@@ -379,7 +379,7 @@ print_state_classes()
         /* initial sub states */
         comma2 = 0;
         if (st->id > max_leaf_sid) {
-            write2file(",\n                             [");
+            write2file(",\n                             subst=[");
             if (st->init) {
                 for (dst = st->init; dst; dst = dst->sibling) {
                     if (comma2) {
@@ -393,6 +393,9 @@ print_state_classes()
             }
             write2file("]");
         }
+
+        write2file(",\n                             trace=trace");
+
         write2file(")\n");
         write2file("\n");
 
@@ -438,13 +441,15 @@ print_main_class(const char *hsm_name)
 
     print_state_classes();
 
+    write2file("    _trace = Trace()\n\n");
+
     write2file("    _states = [");
     for (i = 0; i <= max_sid; i ++) {
         st = find_state_by_sid(i);
         if (i > 0) {
             write2file(",");
         }
-        write2file("\n        _state_%s()", st->name->txt);
+        write2file("\n        _state_%s(_trace)", st->name->txt);
     }
     write2file(" ]\n\n");
 

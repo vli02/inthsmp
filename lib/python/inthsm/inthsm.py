@@ -10,6 +10,40 @@ def HHAccept():
 def HHAbort():
     raise _HSMAbortException
 
+class Trace():
+    def __init__(self):
+        self.__start_trace  = None
+        self.__entry_trace  = None
+        self.__exit_trace   = None
+        self.__init_trace   = None
+        self.__action_trace = None
+
+    def set(self, start  = None,
+                  entry  = None,
+                  exit   = None,
+                  init   = None,
+                  action = None):
+        self.__start_trace  = start
+        self.__entry_trace  = entry
+        self.__exit_trace   = exit
+        self.__init_trace   = init
+        self.__action_trace = action
+
+    def traceStart(self, state):
+        pass
+
+    def traceEntry(self, state):
+        pass
+
+    def traceExit(self, state):
+        pass
+
+    def traceInit(self, state):
+        pass
+
+    def traceAction(self, states, src, e, dst):
+        pass
+
 class BaseState():
     _guards  = { }
     _actions = { }
@@ -21,12 +55,13 @@ class BaseState():
     def _actionNoop(self, pd):
         pass
 
-    def __init__(self, name, sid, superId, trans, subst=None):
+    def __init__(self, name, sid, superId, trans, subst=None, trace=None):
         self.__name = name
         self.__id = sid
         self.__superId = superId
         self.__trans = trans
         self.__subst = subst
+        self.__trace = trace
 
     def __str__(self):
         return self.__name
@@ -40,9 +75,11 @@ class BaseState():
     def enter(self, start, states, pd):
         if start != self.__superId:
             states[self.__superId].enter(start, states, pd)
+        self.__trace.traceEntry(self.__name)
         self._entry(pd)
 
     def exit(self, stop, states, pd):
+        self.__trace.traceExit(self.__name)
         self._exit(pd)
         if stop != self.__superId:
             states[self.__superId].exit(stop, states, pd)
@@ -51,6 +88,7 @@ class BaseState():
         if self.__subst is None:
             return self.__id
         for st in self.__subst:
+            self.__trace.traceInit(self.__name)
             self._inits.get(st, self._actionNoop)(pd)
             states[st].enter(self.__id, states, pd)
             return states[st].init(states, pd)
@@ -71,6 +109,7 @@ class BaseState():
         if tr[1] >= 0:
             self.exit(tr[2], states, pd)
         if tr[1] >= -1:
+            self.__trace.traceAction(states, st, e, tr[1])
             states[st]._actions.get(tr[0], self._actionNoop)(pd)
         if tr[1] >= 0:
             states[tr[1]].enter(tr[2], states, pd)
@@ -97,6 +136,7 @@ class BaseHSM():
             self.__st = -1
         try:
             if self.__st == -1:
+                self._trace.traceStart(self.__name)
                 self._start(self.__pd)
                 self._states[self._start_state].enter(-1, self._states, self.__pd)
                 self.__st = self._states[self._start_state].init(self._states, self.__pd)
@@ -120,3 +160,10 @@ class BaseHSM():
             raise
 
         return ec
+
+    def setTrace(self, start =None,
+                       entry =None,
+                       exit  =None,
+                       init  =None,
+                       action=None):
+        self._trace.set(start, entry, exit, init, action)
