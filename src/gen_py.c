@@ -45,6 +45,36 @@ extern int max_leaf_sid;
 extern int max_super_sid;
 
 
+static void
+reassign_dst_id()
+{
+    state_t *st;
+    trans_t *trs;
+    dest_t  *dst;
+    int id;
+
+    for (st = state_link.head; st; st = st->link) {
+        id = 0;
+        for (trs = st->trans; trs; trs = trs->sibling) {
+            for (dst = trs->dst; dst; dst = dst->sibling) {
+                if (dst->guard || dst->action) {
+                    dst->id = id ++;
+                } else {
+                    dst->id = -1;
+                }
+            }
+        }
+        id = 0;
+        for (dst = st->init; dst; dst = dst->sibling) {
+            if (dst->action) {
+                dst->id = id ++;
+            } else {
+                dst->id = -1;
+            }
+        }
+    }
+}
+
 static const char *
 make_hsm_name()
 {
@@ -177,7 +207,7 @@ print_epilog()
 static void
 print_state_classes()
 {
-    int i, id;
+    int i;
     state_t *st, *cross;
     trans_t *trs, *tr;
     plist_t *evl;
@@ -195,14 +225,10 @@ print_state_classes()
     for (st = state_link.head; st; st = st->link) {
         write2file("    class _state_%s(BaseState):\n", st->name->txt);
 
-        /* guard/action pairs and initial transitions */
+        /* guard/action pairs */
         has_guard = has_action = 0;
-        id = 0;
         for (trs = st->trans; trs; trs = trs->sibling) {
             for (dst = trs->dst; dst; dst = dst->sibling) {
-                if (dst->guard || dst->action) {
-                    dst->id = id ++;             // update id per class
-                }
                 if (dst->guard) {
                     has_guard = 1;
                     write2file("        def _guard_%d(pd):\n", dst->id);
@@ -218,12 +244,11 @@ print_state_classes()
             }
         }
 
+        /* initial transitions */
         has_init = 0;
-        id = 0;
         for (dst = st->init; dst; dst = dst->sibling) {
             if (dst->action) {
                 has_init = 1;
-                dst->id = id ++;             // update id per class
                 write2file("        def _init_%d(pd):\n", dst->id);
                 print_stmt("            ", dst->action);
                 write2file("\n");
@@ -488,14 +513,16 @@ gen_code_py()
 {
     const char *name;
 
+    /* assign dst id per state */
+    reassign_dst_id();
+
     output_file = output_file_ptr;
     print_prod_info();
+
     print_prolog();
 
     name = make_hsm_name();
-
     print_main_class(name);
-
     free_hsm_name(name);
 
     print_epilog();
