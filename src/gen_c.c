@@ -984,16 +984,16 @@ print_run_i()
     p = "  hheid = 0;\n"
         "  hhevp = NULL;\n\n"
         "  hhdstst = %d;\n"
-        "  hheffst = hhcross = -1;\n";
+        "  hheffst = hhcross = -1;\n\n";
     write2file(p, start_st->id);
 
+    p = "  do { HH_TRACE_START; } while (0);\n";
+    write2file(p);
     if (start_code) {
         WRITE_LINENO(start_code);
         p = "  %s\n";
         write2file(p, start_code->txt);
     }
-    p = "  do { HH_TRACE_START; } while (0);\n\n";
-    write2file(p);
 
     p = "  goto hhrunentrylab;\n\n"
         "hhtoplab:\n";
@@ -1186,8 +1186,11 @@ print_run_i()
         write2file(p, max_zone_depth);
     }
 
-    p = "hhrunexitlab:\n"
-        "  switch (hhcurst) {\n";
+    p = "hhrunexitlab:\n";
+    write2file(p);
+    p = "  do { HH_TRACE_EXIT; } while (0);\n";
+    write2file(p);
+    p = "  switch (hhcurst) {\n";
     write2file(p);
 
     for (i = 0; i <= max_sid; i++) {
@@ -1206,9 +1209,6 @@ print_run_i()
     }
     p = "    default: break;\n"
         "  }\n";
-    write2file(p);
-
-    p = "  do { HH_TRACE_EXIT; } while (0);\n";
     write2file(p);
 
     if (max_regions > 1) {
@@ -1263,8 +1263,11 @@ print_run_i()
         write2file(p);
     }
 
-    p = "\nhhrunactionlab:\n"
-        "  switch (hhselect) {\n";
+    p = "\nhhrunactionlab:\n";
+    write2file(p);
+    p = "  do { HH_TRACE_ACTION; } while (0);\n";
+    write2file(p);
+    p = "  switch (hhselect) {\n";
     write2file(p);
 
     dt = dest_link.head;
@@ -1285,9 +1288,6 @@ print_run_i()
         "  }\n";
     write2file(p);
 
-    p = "  do { HH_TRACE_ACTION; } while (0);\n";
-    write2file(p);
-
     p = "  if (hhdstst == -1) {\n"
         "    hhcurst = hhsrcst;\n"
         "    goto hhdonelab;\n"
@@ -1305,8 +1305,11 @@ print_run_i()
         "  hhselectset = hhentrypath[hhleafst];\n"
         "hhnextentrylab:\n"
         "  hhcurst = *hhselectset++;\n"
-        "  if (hhcross == -1) {\n"
-        "    switch (hhcurst) {\n";
+        "  if (hhcross == -1) {\n";
+    write2file(p);
+    p = "    do { HH_TRACE_ENTRY; } while (0);\n";
+    write2file(p);
+    p = "    switch (hhcurst) {\n";
     write2file(p);
 
     for (i = 0; i <= max_sid; i++) {
@@ -1321,9 +1324,6 @@ print_run_i()
     }
     p = "      default: break;\n"
         "    }\n";
-    write2file(p);
-
-    p = "    do { HH_TRACE_ENTRY; } while (0);\n";
     write2file(p);
 
     p = "  } else if (hhcurst == hhcross) {\n"
@@ -1369,6 +1369,8 @@ print_run_i()
         write2file(p);
     }
 
+    p = "  do { HH_TRACE_INIT; } while (0);\n";
+    write2file(p);
     p = "  switch (hhselect) {\n";
     write2file(p);
     for (i = max_leaf_sid + 1; i <= max_sid; i++) {
@@ -1386,8 +1388,7 @@ print_run_i()
         "  }\n";
     write2file(p);
 
-    p = "  do { HH_TRACE_INIT; } while (0);\n"
-        "  goto hhinitentrylab;\n\n";
+    p = "  goto hhinitentrylab;\n\n";
     write2file(p);
 
     p = "hhentrydonelab:\n"
