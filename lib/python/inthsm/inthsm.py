@@ -18,6 +18,21 @@ class Trace():
         self.__init_trace   = None
         self.__action_trace = None
 
+    def __traceStartDefault(self, name):
+        print("%s-START; " % name)
+
+    def __traceEntryDefault(self, state):
+        print("%s-ENTRY; " % state)
+
+    def __traceExitDefault(self, state):
+        print("%s-EXIT; " % state)
+
+    def __traceInitDefault(self, state):
+        print("%s-INIT; " % state)
+
+    def __traceActionDefault(self, src, e, dst):
+        print("%s-%s-%s; " % (src, e, dst))
+
     def set(self, start  = None,
                   entry  = None,
                   exit   = None,
@@ -29,20 +44,61 @@ class Trace():
         self.__init_trace   = init
         self.__action_trace = action
 
-    def traceStart(self, state):
-        pass
+    def enableTrace(self):
+        self.__start_trace  = self.__traceStartDefault
+        self.__entry_trace  = self.__traceEntryDefault
+        self.__exit_trace   = self.__traceExitDefault
+        self.__init_trace   = self.__traceInitDefault
+        self.__action_trace = self.__traceActionDefault
+
+    def disableTrace(self):
+        self.set()
+
+    def traceStart(self, name):
+        if self.__start_trace is None:
+            return
+        try:
+            self.__start_trace(name)
+        except Exception as e:
+            print("Tracing START got exception: %s.", e)
 
     def traceEntry(self, state):
-        pass
+        if self.__entry_trace is None:
+            return
+        try:
+            self.__entry_trace(state)
+        except Exception as e:
+            print("Tracing ENTRY got exception: %s.", e)
 
     def traceExit(self, state):
-        pass
+        if self.__exit_trace is None:
+            return
+        try:
+            self.__exit_trace(state)
+        except Exception as e:
+            print("Tracing EXIT got exception: %s.", e)
 
     def traceInit(self, state):
-        pass
+        if self.__init_trace is None:
+            return
+        try:
+            self.__init_trace(state)
+        except Exception as e:
+            print("Tracing INIT got exception: %s.", e)
 
     def traceAction(self, states, src, e, dst):
-        pass
+        if self.__action_trace is None:
+            return
+        if dst >= 0:
+            s = str(states[dst])
+        elif dst == -1:
+            s = '-'
+        else:
+            s = '<'
+        try:
+            self.__action_trace(str(states[src]), e, s)
+        except Exception as e:
+            print("Tracing ACTION got exception: %s.", e)
 
 class BaseState():
     _guards  = { }

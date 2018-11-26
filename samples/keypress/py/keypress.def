@@ -92,11 +92,16 @@ myKeypress = Keypress(getch, MyData())
 print(myKeypress)
 print ('%s' % myKeypress.getState())
 
+myKeypress.enableTrace()
 ec = myKeypress.run()
 print ('%s' % myKeypress.getState())
 
+myKeypress.enableTrace()
+
 ec = myKeypress.run()
 print ('%s' % myKeypress.getState())
+
+myKeypress.disableTrace()
 
 ec = myKeypress.run(True)
 print ('%s' % myKeypress.getState())
