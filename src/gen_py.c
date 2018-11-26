@@ -465,15 +465,6 @@ print_main_class(const char *hsm_name)
 
     write2file("    def __init__(self, cb, pd=None):\n");
     write2file("        super().__init__('%s', cb, pd)\n\n", hsm_name);
-
-    write2file("    def enableTrace(self):\n");
-    write2file("        self._trace.enableTrace()\n\n");
-
-    write2file("    def disableTrace(self):\n");
-    write2file("        self._trace.disableTrace()\n\n");
-
-    write2file("    def setTrace(self, start=None, entry=None, exit=None, init=None, action=None):\n");
-    write2file("        self._trace.set(start, entry, exit, init, action)\n\n");
 }
 
 int append_ext_py(char *str, int len)

@@ -19,19 +19,19 @@ class Trace():
         self.__action_trace = None
 
     def __traceStartDefault(self, name):
-        print("%s-START; " % name)
+        print("%s-START;" % name)
 
     def __traceEntryDefault(self, state):
-        print("%s-ENTRY; " % state)
+        print("%s-ENTRY;" % state)
 
     def __traceExitDefault(self, state):
-        print("%s-EXIT; " % state)
+        print("%s-EXIT;" % state)
 
     def __traceInitDefault(self, state):
-        print("%s-INIT; " % state)
+        print("%s-INIT;" % state)
 
     def __traceActionDefault(self, src, e, dst):
-        print("%s-%s-%s; " % (src, e, dst))
+        print("%s-%s-%s;" % (src, e, dst))
 
     def set(self, start  = None,
                   entry  = None,
@@ -216,6 +216,12 @@ class BaseHSM():
             raise
 
         return ec
+
+    def enableTrace(self):
+        self._trace.enableTrace()
+
+    def disableTrace(self):
+        self._trace.disableTrace()
 
     def setTrace(self, start =None,
                        entry =None,
