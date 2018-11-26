@@ -91,10 +91,8 @@ class Trace():
             return
         if dst >= 0:
             s = str(states[dst])
-        elif dst == -1:
-            s = '-'
         else:
-            s = '<'
+            s = ''     # internal transition
         try:
             self.__action_trace(str(states[src]), e, s)
         except Exception as e:
