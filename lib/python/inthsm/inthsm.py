@@ -148,7 +148,7 @@ class BaseState():
             return states[st].init(states, pd)
 
     def matchTransition(self, e, states, pd):
-        trs = self.__trans.get(e, [])
+        trs = self.__trans.get(e) or self.__trans.get('*', [])
         for tr in trs:
             if self._guards.get(tr[0], self._guardTrue)(pd):
                 return tr, self.__id
