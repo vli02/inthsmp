@@ -2,13 +2,17 @@
 HSMP		= "$(shell git rev-parse --show-toplevel)"/src/hsmp
 HSMPFLAGS	= -i -v -l py
 
-all: keypress keypress2
+all: keypress keypress2 keypress3
 
 keypress: keypress.def
 	expand $< > $<.i
 	$(HSMP) $(HSMPFLAGS) -o $@.py $<.i
 
 keypress2: keypress2.def
+	expand $< > $<.i
+	$(HSMP) $(HSMPFLAGS) -o $@.py $<.i
+
+keypress3: keypress3.def
 	expand $< > $<.i
 	$(HSMP) $(HSMPFLAGS) -o $@.py $<.i
 
