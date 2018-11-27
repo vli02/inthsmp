@@ -127,16 +127,18 @@ class BaseState():
         pass
 
     def enter(self, start, states, pd):
-        if start != self.__superId:
-            states[self.__superId].enter(start, states, pd)
+        if start == self.__id:
+            return
+        states[self.__superId].enter(start, states, pd)
         self.__trace.traceEntry(self.__name)
         self._entry(pd)
 
     def exit(self, stop, states, pd):
+        if stop == self.__id:
+            return
         self.__trace.traceExit(self.__name)
         self._exit(pd)
-        if stop != self.__superId:
-            states[self.__superId].exit(stop, states, pd)
+        states[self.__superId].exit(stop, states, pd)
 
     def init(self, states, pd):
         if self.__subst is None:
@@ -148,13 +150,13 @@ class BaseState():
             return states[st].init(states, pd)
 
     def matchTransition(self, e, states, pd):
+        if self.__id == -1:
+            return None, -1
         trs = self.__trans.get(e) or self.__trans.get('*', [])
         for tr in trs:
             if self._guards.get(tr[0], self._guardTrue)(pd):
                 return tr, self.__id
-        if self.__superId != -1:
-            return states[self.__superId].matchTransition(e, states, pd)
-        return None, -1
+        return states[self.__superId].matchTransition(e, states, pd)
 
     def on(self, e, states, pd):
         tr, st = self.matchTransition(e, states, pd)
@@ -170,6 +172,12 @@ class BaseState():
             return states[tr[1]].init(states, pd)
         return tr[1]
 
+class NullState(BaseState):
+    def __init__(self, trace=None):
+            super().__init__('', -1, -1,
+                             { },
+                             trace=trace)
+
 class BaseHSM():
     def __init__(self, name, cb, pd):
         self.__name = name
@@ -179,11 +187,6 @@ class BaseHSM():
 
     def __str__(self):
         return self.__name
-
-    def getState(self):
-        if self.__st == -1:
-            return ''
-        return str(self._states[self.__st])
 
     def run(self, reset=False):
         if reset:
@@ -214,6 +217,9 @@ class BaseHSM():
             raise
 
         return ec
+
+    def getState(self):
+        return str(self._states[self.__st])
 
     def enableTrace(self):
         self._trace.enableTrace()

@@ -220,8 +220,6 @@ print_state_classes()
     int *flags = malloc((max_eid + 1) * sizeof(flags[0]));
     assert(flags);
 
-    write2file("    from inthsm import BaseState, Trace\n\n");
-
     for (st = state_link.head; st; st = st->link) {
         write2file("    class _state_%s(BaseState):\n", st->name->txt);
 
@@ -447,7 +445,7 @@ print_main_class(const char *hsm_name)
     event_t *ev;
     state_t *st;
 
-    write2file("from inthsm import BaseHSM\n\n");
+    write2file("from inthsm import BaseHSM, BaseState, NullState, Trace\n\n");
     write2file("class %s(BaseHSM):\n", hsm_name);
 
     write2file("    _events = [");
@@ -468,14 +466,18 @@ print_main_class(const char *hsm_name)
 
     write2file("    _trace = Trace()\n\n");
 
-    write2file("    _states = [");
+    write2file("    _states = [\n");
     for (i = 0; i <= max_sid; i ++) {
         st = find_state_by_sid(i);
         if (i > 0) {
-            write2file(",");
+            write2file(",\n");
         }
-        write2file("\n        _state_%s(_trace)", st->name->txt);
+        write2file("        _state_%s(_trace)", st->name->txt);
     }
+    if (i > 0) {
+        write2file(",\n");
+    }
+    write2file("        NullState(_trace)");
     write2file(" ]\n\n");
 
     write2file("    def _start(self, pd):\n");
