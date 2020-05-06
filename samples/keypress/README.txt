@@ -31,3 +31,15 @@ Files:
 ======
 c/*.def		- c implementation of these state machines.
 c/Makefile	- Makefile to build the state machine binaries.
+py/*.def        - py implementation of these state machines.
+py/Makefile     - Makefile to build the state machine python code.
+
+Building:
+=========
+Require to build inthsmp binary first, and then run make in c or py for building the c or py code respectively.
+
+Running:
+========
+c               - Run the binary directly.
+py              - Set PYTHONPATH env var to include the inthsm python module first and run the py code with Python 3.
+                  Example: $ PYTHONPATH=../../../lib/python/inthsm/ python3 keypress.py
