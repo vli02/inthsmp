@@ -3,7 +3,7 @@ HSMP		= "$(shell git rev-parse --show-toplevel)"/src/hsmp
 HSMPFLAGS	= -i -v -d -S
 CC		= gcc
 CCFLAGS		= -g -Wall
-LDFLAGS		= -lpthread
+LDFLAGS		= -pthread
 
 all: keypress keypress2 keypress3
 
