@@ -10,4 +10,4 @@ hsmp v1.0.3 can generate target state machine code in C or Python language based
 
 This program is free under GNU General Public License.
 
-Copyright (C) 2015, 2016, 2017, 2018  Victor Li (vli02@hotmail.com)
+Copyright (C) 2015, 2016, 2017, 2018  Victor Li (vli02us@gmail.com)
