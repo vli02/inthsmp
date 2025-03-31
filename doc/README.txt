@@ -11,3 +11,6 @@ This directory contains three documents:
 3. hsmp-spec.def
 
   Intuitive Hierarchical State Machine Programming Specification
+
+
+*Author*: vli02us@gmail.com
