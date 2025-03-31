@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2015, 2016  Victor Li (vli02us@gmail.com.com)
+ *  Copyright (C) 2015, 2016  Victor Li (vli02us@gmail.com)
  *
  *  This file is part of inthsmp/hsmp.
  *
